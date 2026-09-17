@@ -1,0 +1,125 @@
+          <!-- ============ REGISTRO · momento 0: onboarding iOS de vidrio en cinco pasos (los mismos datos que Lilly Conexiones, una tarea por pantalla).
+               Capa absoluta con scroll propio dentro de .proto-main (va después del cierre del contenedor scroll). Estado local en x-data. ============ -->
+          <div x-show="pantalla === 'registro'" class="@container screen-enter absolute inset-0 overflow-y-auto scroll-hide"
+               x-data="{ paso: 1, dir: 1, modo: 'crear', correo: '', pais: 'Colombia', menuPais: false, nombre: '', apellidos: '', esp: 'Endocrinología', menuEsp: false, cp: '', tel: '', priv: false, mail: true, llamadas: false, aviso: false, gustos: ['diabetes'],
+                         especialidades: ['Endocrinología', 'Oncología', 'Dermatología', 'Medicina interna', 'Medicina general'],
+                         ir(n) { this.dir = n > this.paso ? 1 : -1; this.paso = n; this.menuPais = false; this.menuEsp = false; this.$nextTick(() => lucide.createIcons()); },
+                         crear() { this.modo = 'crear'; this.ir(2); },
+                         login() { this.modo = 'login'; this.ir(2); },
+                         seguirCorreo() { if (this.modo === 'login') this.entrar('Sesión iniciada'); else this.ir(3); },
+                         entrar(msg) { irRaiz('inicio'); hojaIr('small'); hud(msg || 'Cuenta creada'); } }"
+               x-init="const q = new URLSearchParams(location.search); const n = +q.get('paso'); if (n >= 1 && n <= 5) { paso = n; if (n === 4) priv = false; } $nextTick(() => lucide.createIcons())">
+
+            <div class="min-h-full flex flex-col px-5 pb-8 pt-2 @3xl:items-center @3xl:justify-center @3xl:px-10 @3xl:py-10">
+              <div class="flex flex-col w-full flex-1 @3xl:flex-none @3xl:max-w-[520px] @3xl:glass @3xl:rounded-[28px] @3xl:p-8 @3xl:min-h-[640px]">
+
+                <!-- Cabecera: atrás + progreso (solo en los pasos con datos) -->
+                <div class="h-12 flex items-center gap-3">
+                  <button x-show="paso > 1 && paso < 5" @click="ir(paso - 1)" class="ios-back glass press" aria-label="Atrás"><i data-lucide="chevron-left" class="h-[22px] w-[22px]"></i></button>
+                  <div x-show="modo === 'crear' && paso > 1 && paso < 5" class="flex-1 flex gap-1.5 px-6" aria-label="Progreso del registro">
+                    <span class="reg-seg" :class="{ 'is-done': paso >= 2 }"></span><span class="reg-seg" :class="{ 'is-done': paso >= 3 }"></span><span class="reg-seg" :class="{ 'is-done': paso >= 4 }"></span>
+                  </div>
+                  <span x-show="paso > 1 && paso < 5" class="w-11"></span>
+                </div>
+
+                <!-- Paso 1 · Bienvenida -->
+                <template x-if="paso === 1">
+                  <div class="flex-1 flex flex-col justify-end pb-2 stagger" :class="dir > 0 ? 'reg-in' : 'reg-back'">
+                    <p class="text-[15px] font-semibold tracking-tight"><span class="text-lilly">Lilly</span> <span class="text-ink-3">360</span></p>
+                    <h1 class="ios-large-title mt-3 !text-[40px] @3xl:!text-[44px]">Tu consulta,<br>al minuto</h1>
+                    <p class="mt-3 text-[17px] text-ink-2">Para profesionales de la salud en Colombia</p>
+                    <button @click="crear()" class="ios-btn w-full mt-10 press">Crear cuenta</button>
+                    <button @click="login()" class="ios-btn-glass glass w-full mt-3 press">Ya tengo cuenta</button>
+                  </div>
+                </template>
+
+                <!-- Paso 2 · Correo (o inicio de sesión) -->
+                <template x-if="paso === 2">
+                  <div class="flex-1 flex flex-col pt-2" :class="dir > 0 ? 'reg-in' : 'reg-back'">
+                    <h1 class="ios-large-title" x-text="modo === 'login' ? 'Inicia sesión' : 'Tu correo'"></h1>
+                    <p class="mt-2 text-[15px] text-ink-2" x-text="modo === 'login' ? 'Con el correo con el que te registraste.' : 'Te enviaremos un enlace para confirmarlo.'"></p>
+                    <label class="glass ios-search mt-6 !h-[52px]">
+                      <i data-lucide="mail" class="h-5 w-5 shrink-0"></i>
+                      <input x-model="correo" type="email" inputmode="email" autocomplete="email" placeholder="nombre@clinica.com" class="reg-campo !text-[17px]" @keydown.enter="seguirCorreo()" />
+                    </label>
+                    <button @click="seguirCorreo()" class="ios-btn w-full mt-4 press">Continuar</button>
+                    <div class="my-5 flex items-center gap-3 text-[13px] text-ink-3"><span class="h-px flex-1 bg-sep"></span>o<span class="h-px flex-1 bg-sep"></span></div>
+                    <button @click="seguirCorreo()" class="ios-btn-glass glass w-full press !justify-start gap-3 px-4"><span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white text-[14px] font-bold text-[#4285F4] shadow-sm">G</span><span class="flex-1 text-center pr-7">Continuar con Google</span></button>
+                    <button @click="seguirCorreo()" class="ios-btn-glass glass w-full mt-3 press !justify-start gap-3 px-4"><span class="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#0A66C2] text-[12px] font-bold text-white">in</span><span class="flex-1 text-center pr-7">Continuar con LinkedIn</span></button>
+                    <p class="mt-auto pt-6 text-center text-[12px] text-ink-3">Lilly 360 es solo para profesionales de la salud.</p>
+                  </div>
+                </template>
+
+                <!-- Paso 3 · País y perfil profesional -->
+                <template x-if="paso === 3">
+                  <div class="flex-1 flex flex-col pt-2" :class="dir > 0 ? 'reg-in' : 'reg-back'">
+                    <h1 class="ios-large-title">Perfil profesional</h1>
+                    <p class="mt-2 text-[15px] text-ink-2">Los mismos datos que verifica Lilly para darte acceso.</p>
+                    <div class="glass ios-list mt-6 !overflow-visible relative">
+                      <button @click="menuPais = !menuPais; menuEsp = false" class="ios-row press"><span class="w-[112px] text-[15px] text-ink-2">País</span><span class="flex-1 text-left text-[16px] text-ink" x-text="pais"></span><i data-lucide="chevron-down" class="h-4 w-4 text-ink-3"></i></button>
+                      <div x-show="menuPais" class="glass-strong reg-menu">
+                        <template x-for="o in ['Colombia', 'México']" :key="o"><button @click="pais = o; menuPais = false" class="ios-row press !min-h-[48px]"><span class="flex-1 text-left text-[16px] text-ink" x-text="o"></span><i x-show="pais === o" data-lucide="check" class="h-4 w-4 text-lilly"></i></button></template>
+                      </div>
+                    </div>
+                    <div class="glass ios-list mt-4 !overflow-visible relative">
+                      <div class="ios-row"><span class="w-[112px] text-[15px] text-ink-2">Nombre</span><input x-model="nombre" placeholder="Óscar" class="reg-campo" /><span class="mx-3 h-6 w-px bg-sep"></span><input x-model="apellidos" placeholder="Apellidos" class="reg-campo" /></div>
+                      <button @click="menuEsp = !menuEsp; menuPais = false" class="ios-row press"><span class="w-[112px] text-[15px] text-ink-2">Especialidad</span><span class="flex-1 text-left text-[16px] text-ink" x-text="esp"></span><i data-lucide="chevron-down" class="h-4 w-4 text-ink-3"></i></button>
+                      <div x-show="menuEsp" class="glass-strong reg-menu">
+                        <template x-for="o in especialidades" :key="o"><button @click="esp = o; menuEsp = false" class="ios-row press !min-h-[48px]"><span class="flex-1 text-left text-[16px] text-ink" x-text="o"></span><i x-show="esp === o" data-lucide="check" class="h-4 w-4 text-lilly"></i></button></template>
+                      </div>
+                      <label class="ios-row"><span class="w-[112px] text-[15px] text-ink-2">Código postal</span><input x-model="cp" inputmode="numeric" placeholder="110111" class="reg-campo" /></label>
+                      <label class="ios-row"><span class="w-[112px] text-[15px] text-ink-2">Teléfono</span><span class="mr-2 text-[16px] text-ink-2" x-text="pais === 'México' ? '+52' : '+57'"></span><input x-model="tel" inputmode="tel" placeholder="300 123 4567" class="reg-campo" /></label>
+                    </div>
+                    <button @click="ir(4)" class="ios-btn w-full mt-6 press">Continuar</button>
+                  </div>
+                </template>
+
+                <!-- Paso 4 · Consentimientos -->
+                <template x-if="paso === 4">
+                  <div class="flex-1 flex flex-col pt-2" :class="dir > 0 ? 'reg-in' : 'reg-back'">
+                    <h1 class="ios-large-title">Consentimientos</h1>
+                    <p class="mt-2 text-[15px] text-ink-2">Solo el primero es necesario para crear la cuenta.</p>
+                    <div class="glass ios-list mt-6">
+                      <div class="ios-row"><span class="flex-1 min-w-0"><span class="block text-[16px] text-ink">Privacidad y tratamiento de datos</span><span class="block text-[12px] text-ink-2">Obligatorio · <button @click="aviso = true" class="font-medium text-lillyblue">Leer aviso</button></span></span><button class="ios-switch" role="switch" :aria-checked="priv ? 'true' : 'false'" @click="priv = !priv" aria-label="Privacidad y tratamiento de datos"></button></div>
+                      <div class="ios-row"><span class="flex-1 min-w-0"><span class="block text-[16px] text-ink">Contacto por correo electrónico</span><span class="block text-[12px] text-ink-2">Novedades de contenido y webinars</span></span><button class="ios-switch" role="switch" :aria-checked="mail ? 'true' : 'false'" @click="mail = !mail" aria-label="Contacto por correo electrónico"></button></div>
+                      <div class="ios-row"><span class="flex-1 min-w-0"><span class="block text-[16px] text-ink">Llamadas telefónicas</span><span class="block text-[12px] text-ink-2">Solo para eventos y verificación</span></span><button class="ios-switch" role="switch" :aria-checked="llamadas ? 'true' : 'false'" @click="llamadas = !llamadas" aria-label="Llamadas telefónicas"></button></div>
+                    </div>
+                    <p class="mt-3 px-1 text-[13px] text-ink-3">Puedes cambiar esto en Perfil.</p>
+                    <button @click="priv && ir(5)" :disabled="!priv" class="ios-btn w-full mt-6 press disabled:opacity-40" :aria-disabled="!priv">Crear cuenta</button>
+                    <p x-show="!priv" class="mt-2 text-center text-[12px] text-ink-3">Activa la privacidad para continuar.</p>
+                  </div>
+                </template>
+
+                <!-- Paso 5 · Listo -->
+                <template x-if="paso === 5">
+                  <div class="flex-1 flex flex-col items-center justify-center text-center stagger" :class="dir > 0 ? 'reg-in' : 'reg-back'">
+                    <span class="ios-orb is-active !h-16 !w-16"></span>
+                    <h1 class="ios-large-title mt-6">Bienvenido, Dr.&nbsp;Óscar</h1>
+                    <p class="mt-2 max-w-[320px] text-[15px] text-ink-2">Tu cuenta está verificada como profesional de la salud.</p>
+                    <p class="mt-8 text-[13px] font-medium text-ink-2">Te puede interesar</p>
+                    <div class="mt-2 flex flex-wrap justify-center gap-2">
+                      <template x-for="(e, k) in enfermedades" :key="'reg-' + k"><button @click="gustos.includes(k) ? gustos.splice(gustos.indexOf(k), 1) : gustos.push(k)" class="ios-chip glass press" :aria-selected="gustos.includes(k) ? 'true' : 'false'" x-text="e.nombre"></button></template>
+                    </div>
+                    <button @click="entrar('Cuenta creada')" class="ios-btn w-full mt-10 press">Entrar a Lilly 360</button>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- Sheet «Leer aviso»: resumen del aviso de privacidad de Lilly -->
+            <div x-show="aviso" class="absolute inset-0 z-10 fade-in" @click.self="aviso = false">
+              <div class="absolute inset-0 bg-black/10" @click="aviso = false"></div>
+              <div class="glass-strong ios-sheet siri-sheet-up absolute inset-x-0 bottom-0 px-5 pb-7 @3xl:inset-x-auto @3xl:left-1/2 @3xl:-translate-x-1/2 @3xl:w-[520px] @3xl:rounded-b-[28px] @3xl:bottom-6">
+                <p class="text-[20px] font-semibold tracking-tight text-ink">Aviso de privacidad</p>
+                <div class="mt-3 space-y-3 text-[14px] leading-relaxed text-ink-2 max-h-[300px] overflow-y-auto scroll-hide pr-1">
+                  <p>Eli Lilly y Compañía trata tus datos personales como profesional de la salud para verificar tu identidad, darte acceso a Lilly 360 y adaptar el contenido a tu especialidad e intereses.</p>
+                  <p>Registramos qué contenidos abres, cuánto tiempo los ves y qué guardas. Esa información se usa de forma agregada para mejorar el servicio y nunca se vende a terceros.</p>
+                  <p>Puedes retirar los consentimientos opcionales de contacto por correo o teléfono en cualquier momento desde Perfil, sin que eso afecte tu acceso al contenido médico.</p>
+                  <p>Tienes derecho a conocer, actualizar, rectificar y suprimir tus datos, y a presentar reclamaciones ante la autoridad de protección de datos de tu país.</p>
+                </div>
+                <p class="mt-3 text-[13px] text-ink-3">Texto completo en <span class="font-medium text-lillyblue">privacynotice.lilly.com</span></p>
+                <button @click="aviso = false; priv = true" class="ios-btn w-full mt-4 press">Entendido, acepto</button>
+              </div>
+            </div>
+          </div>
+

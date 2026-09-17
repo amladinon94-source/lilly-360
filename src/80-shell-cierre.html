@@ -1,5 +1,5 @@
         <!-- Degradado para que el contenido se apague bajo la tab bar flotante (solo iPhone) -->
-        <div x-show="dispositivo === 'iphone'" class="tab-fade"></div>
+        <div x-show="dispositivo === 'iphone' && !sinCascaron.includes(pantalla) && !modal && !rag.abierto" class="tab-fade"></div>
 
         <!-- iPad y escritorio no tienen isla: el estado «consultando» cae como pastilla desde arriba del área de contenido -->
         <div x-show="dispositivo !== 'iphone' && rag.estado === 'pensando'" class="absolute top-4 left-1/2 -translate-x-1/2 z-[36]">
@@ -162,7 +162,7 @@
                     <span class="siri-orb-3d"></span>
                     <button @click="ragDictar()" class="glass-icon !h-12 !w-12 press" aria-label="Preguntar por voz"><i data-lucide="mic" class="h-5 w-5 text-ink-2"></i></button>
                   </div>
-                  <p class="mt-7 text-[17px] text-ink-2">Hola Óscar</p>
+                  <p class="mt-7 text-[17px] text-ink-2">Hola, Dr.&nbsp;Óscar</p>
                   <p class="mt-1 max-w-[420px] text-[28px] font-semibold leading-tight tracking-tight text-ink" x-text="ragAmbito ? '¿Qué necesitas saber sobre ' + ragAmbito.nombre.toLowerCase() + '?' : '¿Qué necesitas saber hoy?'"></p>
                   <div class="mt-6 flex flex-wrap justify-center gap-2">
                     <template x-for="s in ragSugerencias" :key="'c' + s"><button @click="ragEnviar(s)" class="ios-chip glass !h-9 !text-[13px] press" x-text="s"></button></template>

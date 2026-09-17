@@ -192,6 +192,7 @@
   .is-ipad    .ios-sidebar { width: 240px; opacity: 1; padding: 18px 14px; border-right: 1px solid rgba(255,255,255,.6); }
   .is-desktop .ios-sidebar { width: 260px; opacity: 1; padding: 20px 16px; border-right: 1px solid rgba(255,255,255,.6); }
   .ios-sidebar > * { width: 100%; min-width: 212px; }
+  .is-ipad .ios-sidebar.is-fuera, .is-desktop .ios-sidebar.is-fuera { width: 0; opacity: 0; padding: 18px 0; border-right: 0; }
   .ios-side-item { display: flex; align-items: center; gap: 12px; width: 100%; height: 44px; padding: 0 14px; border-radius: 14px; font-size: 15px; font-weight: 500; color: #1A1A1A; text-align: left; transition: background .3s cubic-bezier(.32,.72,0,1), box-shadow .3s; }
   .ios-side-item:hover { background: rgba(255,255,255,.45); }
   .ios-side-item[aria-selected="true"] { background: #fff; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 6px 16px rgba(0,0,0,.05); }
@@ -315,6 +316,17 @@
   .guia-foto { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 16px; background: rgba(255,255,255,.04); }
   .guia-foto img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; transition: opacity 500ms ease; }
   .guia-foto::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 55%); }
+  /* ===== Registro (onboarding iOS de vidrio): deslizamiento entre pasos y segmentos de progreso ===== */
+  .reg-in   { animation: reg-in 380ms cubic-bezier(.32,.72,0,1) both; }
+  .reg-back { animation: reg-back 380ms cubic-bezier(.32,.72,0,1) both; }
+  @keyframes reg-in   { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+  @keyframes reg-back { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+  .reg-seg { height: 4px; flex: 1; border-radius: 9999px; background: rgba(60,60,67,.14); transition: background 300ms ease; }
+  .reg-seg.is-done { background: #1A1A1A; }
+  .reg-campo { flex: 1; min-width: 0; background: transparent; outline: none; font-size: 16px; color: #1A1A1A; }
+  .reg-campo::placeholder { color: #9AA0A6; }
+  .reg-menu { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 5; border-radius: 18px; overflow: hidden; animation: siri-card-in 250ms cubic-bezier(.32,.72,0,1) both; }
+  @media (prefers-reduced-motion: reduce) { .reg-in, .reg-back, .reg-menu { animation: none !important; } }
 </style>
 </head>
 <body class="font-sans bg-[#0B0B0D] text-white h-screen overflow-hidden antialiased" x-data="app()" x-init="init()" x-cloak>
@@ -418,7 +430,7 @@
 
         <div class="proto-row">
           <!-- Sidebar de vidrio (iPad y escritorio): reemplaza a la tab bar -->
-          <aside class="ios-sidebar">
+          <aside class="ios-sidebar" :class="{ 'is-fuera': sinCascaron.includes(pantalla) }">
             <p class="px-[14px] text-[13px] font-semibold tracking-tight"><span class="text-lilly">Lilly</span> <span class="text-ink-3">360</span></p>
             <nav class="mt-5 space-y-1" aria-label="Secciones">
               <template x-for="t in tabBar" :key="'side-' + t.id">
@@ -445,15 +457,15 @@
             </nav>
             <button @click="irRaiz('perfil')" class="mt-auto flex items-center gap-3 px-[10px] pt-4 text-left press">
               <span class="glass-icon !h-10 !w-10 text-[14px] font-semibold">Ó</span>
-              <span class="min-w-0"><span class="block text-[14px] font-semibold text-ink truncate">Óscar</span><span class="block text-[12px] text-ink-2 truncate">Endocrinología</span></span>
+              <span class="min-w-0"><span class="block text-[14px] font-semibold text-ink truncate">Dr. Óscar Martínez</span><span class="block text-[12px] text-ink-2 truncate">Endocrinología</span></span>
             </button>
           </aside>
 
           <div class="proto-main" x-ref="main">
         <!-- Aurora solo en el Inicio, en los tres dispositivos: detrás del contenido, encima del .bg-scene, sin tocar el tinte de las otras pantallas -->
-        <div x-show="pantalla === 'inicio'" x-transition.opacity.duration.600ms class="aurora" aria-hidden="true"></div>
+        <div x-show="pantalla === 'inicio' || pantalla === 'registro'" x-transition.opacity.duration.600ms class="aurora" aria-hidden="true"></div>
         <!-- Nav bar iOS 26: Atrás en círculo de vidrio, título compacto (el de la pieza en Detalle y Pieza), acciones orbe · bookmark · share -->
-        <div class="ios-navbar" :class="{ 'is-scrolled': scrolled }" x-show="!['inicio', 'guardados', 'perfil'].includes(pantalla) && !(dispositivo === 'iphone' && pantalla === 'tema')">
+        <div class="ios-navbar" :class="{ 'is-scrolled': scrolled }" x-show="!['inicio', 'guardados', 'perfil', 'registro', 'dashboard'].includes(pantalla) && !(dispositivo === 'iphone' && pantalla === 'tema')">
           <button @click="atras()" class="ios-back glass press" aria-label="Atrás"><i data-lucide="chevron-left" class="h-[22px] w-[22px]"></i></button>
           <span class="truncate text-[17px] font-semibold text-ink pointer-events-none transition-opacity duration-300"
                 :class="['detalle', 'pieza'].includes(pantalla) && dispositivo === 'iphone' ? ['relative flex-1 min-w-0 px-3 text-left', scrolled ? 'opacity-100' : 'opacity-0'] : 'absolute left-1/2 -translate-x-1/2 max-w-[50%]'"

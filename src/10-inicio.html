@@ -2,7 +2,7 @@
           <div x-show="pantalla === 'inicio' || (dispositivo === 'iphone' && pantalla === 'tema')" :class="{ 'inicio-enter': inicioPrimeraVez }" @animationend.self="inicioPrimeraVez = false" class="px-5 pb-[200px] @3xl:px-10 @3xl:pt-6 @3xl:pb-16 @6xl:px-14 @6xl:pt-10 @6xl:max-w-[1180px] @6xl:mx-auto @6xl:grid @6xl:grid-cols-2 @6xl:gap-12 @6xl:items-start">
             <div class="stagger @3xl:max-w-[720px]">
               <div class="pt-2 flex items-start justify-between">
-                <h1 class="ios-large-title" x-text="saludo + ', Óscar'"></h1>
+                <h1 class="ios-large-title" x-text="saludo + ', Dr.\u00A0Óscar'"></h1>
                 <span class="mt-2 shrink-0 whitespace-nowrap text-[13px] font-semibold tracking-tight @3xl:hidden"><span class="text-lilly">Lilly</span> <span class="text-ink-3">360</span></span>
               </div>
 

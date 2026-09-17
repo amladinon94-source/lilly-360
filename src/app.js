@@ -16,6 +16,8 @@ function app() {
       { titulo: 'Tratamiento farmacológico de la diabetes tipo 2', tipo: 'Algoritmo', enfermedad: 'diabetes', tab: 'tratamiento' },
       { titulo: 'Escalas de severidad: EASI, SCORAD e IGA', tipo: 'Tabla', enfermedad: 'derma', tab: 'diagnostico' },
       { titulo: 'Clasificación BI-RADS', tipo: 'Tabla', enfermedad: 'mama', tab: 'diagnostico' },
+      { titulo: 'Metas glucémicas individualizadas', tipo: 'Tabla', enfermedad: 'diabetes', tab: 'tratamiento' },
+      { titulo: 'Criterios para escalar a terapia sistémica', tipo: 'Algoritmo', enfermedad: 'derma', tab: 'tratamiento' },
     ],
     // Consulta al RAG (simulada, fase 2): foco del campo, texto escrito, estado idle | pensando | respuesta y la pregunta enviada.
     rag: { foco: false, texto: '', estado: 'idle', pregunta: '', abierto: false, modo: 'texto', hilo: [], escuchando: false, dictado: [], fuentesAbierto: false, contexto: '',
@@ -44,12 +46,16 @@ function app() {
     },
 
     atajos: [
+      { id: 'registro', nombre: 'Registro' },
       { id: 'inicio', nombre: 'Inicio' },
       { id: 'tema', nombre: 'Búsqueda rápida' },
       { id: 'detalle', nombre: 'Algoritmo' },
       { id: 'formacion', nombre: 'Formación ágil' },
       { id: 'pieza', nombre: 'Webinar' },
+      { id: 'dashboard', nombre: 'Back office' },
     ],
+    // Pantallas «de sistema»: sin tab bar, hoja ni sidebar (registro es el momento 0; dashboard es otro rol, el equipo de Lilly).
+    sinCascaron: ['registro', 'dashboard'],
     tabs: [ { id: 'diagnostico', nombre: 'Diagnóstico' }, { id: 'tratamiento', nombre: 'Tratamiento' }, { id: 'infografias', nombre: 'Infografías' } ],
     tabBar: [ { id: 'inicio', nombre: 'Inicio', icono: 'house' }, { id: 'guardados', nombre: 'Guardados', icono: 'bookmark' }, { id: 'perfil', nombre: 'Perfil', icono: 'user-round' } ],
     // Contrato compartido (revisión UX): guardados alimenta el bookmark de la nav bar y la pantalla Guardados; el HUD confirma acciones.
@@ -74,11 +80,13 @@ function app() {
           { tipo: 'Algoritmo', titulo: 'Criterios diagnósticos de diabetes tipo 2 y prediabetes', minutos: 4, fecha: '12 ago 2026' },
           { tipo: 'Tabla', titulo: 'Interpretación de HbA1c, glucemia en ayunas y prueba de tolerancia', minutos: 3, fecha: '30 jul 2026' },
           { tipo: 'Guía', titulo: 'Tamizaje en adultos con factores de riesgo cardiometabólico', minutos: 6, fecha: '18 jun 2026' },
+          { tipo: 'Tabla', titulo: 'Cribado de complicaciones: retinopatía, nefropatía y pie diabético', minutos: 4, fecha: '22 ago 2026' },
         ],
         tratamiento: [
           { tipo: 'Algoritmo', titulo: 'Tratamiento farmacológico de la diabetes tipo 2 según perfil del paciente', minutos: 5, fecha: '02 sep 2026' },
           { tipo: 'Tabla', titulo: 'Metas glucémicas individualizadas y frecuencia de control', minutos: 3, fecha: '15 ago 2026' },
           { tipo: 'Algoritmo', titulo: 'Manejo del paciente con obesidad y enfermedad cardiovascular establecida', minutos: 5, fecha: '21 jul 2026' },
+          { tipo: 'Guía', titulo: 'Inicio y titulación de insulina basal en consulta externa', minutos: 5, fecha: '28 ago 2026' },
         ],
         infografias: [
           { tipo: 'Infografía', titulo: '¿Qué es la diabetes tipo 2? Guía para el paciente', minutos: 2, fecha: '05 sep 2026' },
@@ -91,11 +99,13 @@ function app() {
           { tipo: 'Algoritmo', titulo: 'Abordaje de la masa mamaria palpable en atención primaria', minutos: 4, fecha: '28 ago 2026' },
           { tipo: 'Tabla', titulo: 'Clasificación BI-RADS y conducta según categoría', minutos: 3, fecha: '10 ago 2026' },
           { tipo: 'Guía', titulo: 'Tamizaje según riesgo: edad de inicio e intervalos', minutos: 5, fecha: '22 jun 2026' },
+          { tipo: 'Algoritmo', titulo: 'Estudio de la paciente con mamografía BI-RADS 4', minutos: 4, fecha: '15 ago 2026' },
         ],
         tratamiento: [
           { tipo: 'Algoritmo', titulo: 'Tratamiento del cáncer de mama HR+/HER2− temprano de alto riesgo', minutos: 6, fecha: '04 sep 2026' },
           { tipo: 'Tabla', titulo: 'Manejo de eventos adversos frecuentes en terapia endocrina', minutos: 4, fecha: '19 ago 2026' },
           { tipo: 'Algoritmo', titulo: 'Seguimiento posterior al tratamiento adyuvante', minutos: 4, fecha: '07 jul 2026' },
+          { tipo: 'Guía', titulo: 'Terapia endocrina adyuvante: elección según estado menopáusico', minutos: 5, fecha: '26 ago 2026' },
         ],
         infografias: [
           { tipo: 'Infografía', titulo: 'Autoexamen de mama: paso a paso', minutos: 2, fecha: '03 sep 2026' },
@@ -108,11 +118,13 @@ function app() {
           { tipo: 'Algoritmo', titulo: 'Criterios diagnósticos de dermatitis atópica en adultos y adolescentes', minutos: 4, fecha: '26 ago 2026' },
           { tipo: 'Tabla', titulo: 'Escalas de severidad: EASI, SCORAD e IGA', minutos: 3, fecha: '08 ago 2026' },
           { tipo: 'Guía', titulo: 'Diagnóstico diferencial con psoriasis y dermatitis de contacto', minutos: 5, fecha: '15 jun 2026' },
+          { tipo: 'Tabla', titulo: 'Signos de infección secundaria en el eccema: cuándo cultivar', minutos: 3, fecha: '20 ago 2026' },
         ],
         tratamiento: [
           { tipo: 'Algoritmo', titulo: 'Tratamiento escalonado de la dermatitis atópica moderada a severa', minutos: 5, fecha: '06 sep 2026' },
           { tipo: 'Tabla', titulo: 'Emolientes y corticoides tópicos: potencia y zonas de aplicación', minutos: 3, fecha: '12 ago 2026' },
           { tipo: 'Algoritmo', titulo: 'Criterios para escalar a terapia sistémica', minutos: 4, fecha: '09 jul 2026' },
+          { tipo: 'Guía', titulo: 'Manejo del prurito nocturno y del sueño en dermatitis atópica', minutos: 4, fecha: '30 ago 2026' },
         ],
         infografias: [
           { tipo: 'Infografía', titulo: 'Rutina de cuidado de la piel en dermatitis atópica', minutos: 2, fecha: '01 sep 2026' },
@@ -153,18 +165,24 @@ function app() {
         { formato: 'pdf', imagen: 'img/estudio-pdf.jpg', titulo: 'SURPASS-2: tirzepatida frente a semaglutida en diabetes tipo 2', autor: 'Estudio clínico · NEJM 2021', fecha: '03 sep 2026', duracion: '18 pág.', pregunta: '¿Cuál fue el desenlace primario del estudio?', opciones: ['Cambio en HbA1c a la semana 40', 'Eventos cardiovasculares mayores', 'Cambio de peso a la semana 52'], correcta: 0, explicacion: 'El desenlace primario fue el cambio en HbA1c desde el inicio a la semana 40.', resumen: 'Resumen estructurado del estudio con tablas de eficacia, seguridad y aplicabilidad a la práctica en Colombia.' },
         { formato: 'info', imagen: 'img/diabetes-portada.jpg', titulo: 'Interpretación rápida del monitoreo continuo de glucosa', autor: 'Comité editorial Lilly', fecha: '28 ago 2026', pregunta: '¿Qué porcentaje de tiempo en rango se considera meta para la mayoría de adultos?', opciones: ['> 50 %', '> 70 %', '> 90 %'], correcta: 1, explicacion: 'La meta general es más del 70 % del tiempo entre 70 y 180 mg/dL.', resumen: 'Infografía interactiva con los indicadores del reporte de glucosa y su lectura clínica.' },
         { formato: 'encuesta', imagen: 'img/junta-medica.jpg', titulo: '¿Qué barreras encuentras para iniciar terapia inyectable?', autor: 'Encuesta a la comunidad · 2 min', fecha: '25 ago 2026', pregunta: '¿Cuál es la principal barrera en tu consulta?', opciones: ['Costo y acceso', 'Temor del paciente a la inyección', 'Falta de tiempo para educar'], correcta: 0, explicacion: 'Gracias por tu respuesta. Los resultados agregados se publican el próximo mes.', resumen: 'Encuesta breve para conocer las barreras reales en la práctica y orientar los próximos contenidos.' },
+        { formato: 'video', imagen: 'img/junta-medica.jpg', titulo: 'Insulinización en 10 minutos: técnica, dosis inicial y titulación', autor: 'Dra. Ana Rojas · Endocrinóloga', fecha: '05 sep 2026', duracion: '12 min', progreso: 0, pregunta: '¿Cuál es la dosis inicial habitual de insulina basal?', opciones: ['0,1–0,2 U/kg/día', '0,5 U/kg/día', '1 U/kg/día'], correcta: 0, explicacion: 'Se inicia con 10 U o 0,1–0,2 U/kg y se titula cada 3 días según la glucemia en ayunas.', resumen: 'Microaprendizaje práctico con demostración de dispositivos y esquema de titulación.' },
+        { formato: 'pdf', imagen: 'img/estudio-pdf.jpg', titulo: 'SURMOUNT-1: tirzepatida en obesidad sin diabetes', autor: 'Estudio clínico · NEJM 2022', fecha: '20 ago 2026', duracion: '14 pág.', pregunta: '¿Cuál fue la reducción media de peso a la semana 72 con la dosis más alta?', opciones: ['Cerca del 5 %', 'Cerca del 12 %', 'Cerca del 21 %'], correcta: 2, explicacion: 'La dosis de 15 mg alcanzó cerca del 21 % de reducción de peso.', resumen: 'Resumen estructurado con eficacia, seguridad y aplicabilidad a la práctica.' },
       ],
       mama: [
         { formato: 'video', imagen: 'img/webinar-oncologo.jpg', titulo: 'monarchE a 5 años: qué cambia en el adyuvante de alto riesgo', autor: 'Dr. Camilo Peña · Oncólogo clínico', fecha: '08 sep 2026', duracion: '22 min', progreso: 60, pregunta: '¿Cuánto dura el tratamiento adyuvante con inhibidor de CDK4/6 en monarchE?', opciones: ['1 año', '2 años', '5 años'], correcta: 1, explicacion: 'El esquema adyuvante fue de dos años, sumado a la terapia endocrina.', resumen: 'Revisión de los resultados de seguimiento y su impacto en la selección de pacientes.' },
         { formato: 'live', imagen: 'img/junta-medica.jpg', titulo: 'Junta multidisciplinaria abierta: casos de alto riesgo', autor: 'Fundación Santa Fe · Jueves 7:00 pm', fecha: 'Jueves', duracion: '90 min', pregunta: '¿Qué criterio define alto riesgo en monarchE?', opciones: ['Cualquier ganglio positivo', '≥ 4 ganglios, o 1–3 con tumor ≥ 5 cm o grado 3', 'Solo Ki-67 elevado'], correcta: 1, explicacion: 'La cohorte 1 se definió por carga ganglionar, tamaño y grado.', resumen: 'Sesión en vivo con discusión de casos reales y votación interactiva.' },
         { formato: 'pdf', imagen: 'img/estudio-pdf.jpg', titulo: 'Manejo de la diarrea inducida por inhibidores de CDK4/6', autor: 'Guía de práctica · ESMO 2025', fecha: '30 ago 2026', duracion: '12 pág.', pregunta: '¿Cuándo se inicia loperamida?', opciones: ['Con el primer episodio de heces blandas', 'Solo en diarrea grado 3', 'Nunca de forma profiláctica'], correcta: 0, explicacion: 'El manejo temprano reduce la necesidad de ajustar la dosis.', resumen: 'Guía práctica con algoritmo de manejo por grado y recomendaciones para el paciente.' },
         { formato: 'info', imagen: 'img/mama-portada.jpg', titulo: 'Terapia endocrina: adherencia y efectos adversos frecuentes', autor: 'Comité editorial Lilly', fecha: '20 ago 2026', pregunta: '¿Qué porcentaje de pacientes abandona la terapia endocrina antes de 5 años?', opciones: ['Cerca del 10 %', 'Entre 30 y 50 %', 'Más del 80 %'], correcta: 1, explicacion: 'La no adherencia es frecuente y se asocia con peor supervivencia.', resumen: 'Infografía para la consulta con estrategias de apoyo a la adherencia.' },
+        { formato: 'video', imagen: 'img/oscar-tablet.jpg', titulo: 'Cómo leer un reporte de patología mamaria en 8 minutos', autor: 'Dra. Marcela Ruiz · Patóloga', fecha: '02 sep 2026', duracion: '8 min', progreso: 0, pregunta: '¿Qué define el subtipo HER2 positivo?', opciones: ['Ki-67 mayor de 20 %', 'HER2 3+ por inmunohistoquímica o amplificación por ISH', 'Receptores hormonales negativos'], correcta: 1, explicacion: 'HER2 positivo es inmunohistoquímica 3+ o amplificación por hibridación in situ.', resumen: 'Guía visual del reporte: receptores, HER2, grado histológico y Ki-67.' },
+        { formato: 'encuesta', imagen: 'img/junta-medica.jpg', titulo: '¿Con qué frecuencia remites a junta multidisciplinaria?', autor: 'Encuesta a la comunidad · 1 min', fecha: '12 ago 2026', pregunta: '¿Cuándo remites a junta?', opciones: ['Siempre, antes de iniciar tratamiento', 'Solo en casos de alto riesgo', 'Casi nunca, por falta de acceso'], correcta: 0, explicacion: 'Gracias por tu respuesta. Los resultados agregados se publican el próximo mes.', resumen: 'Encuesta breve para orientar los próximos ateneos.' },
       ],
       derma: [
         { formato: 'video', imagen: 'img/webinar-derma.jpg', titulo: 'Anti-IL-13 en dermatitis atópica: a quién y cuándo', autor: 'Dra. Laura Gómez · Dermatóloga', fecha: '09 sep 2026', duracion: '18 min', progreso: 20, pregunta: '¿Cuál es el criterio principal para escalar a terapia sistémica?', opciones: ['Cualquier brote', 'Falla a tópicos optimizados con impacto en calidad de vida', 'Solo si hay asma asociada'], correcta: 1, explicacion: 'Se escala cuando el tratamiento tópico bien hecho no controla la enfermedad.', resumen: 'Microaprendizaje con criterios de selección, monitoreo y expectativas de respuesta.' },
         { formato: 'pdf', imagen: 'img/estudio-pdf.jpg', titulo: 'ADvocate 1 y 2: lebrikizumab en dermatitis atópica moderada a severa', autor: 'Estudio clínico · NEJM 2023', fecha: '01 sep 2026', duracion: '16 pág.', pregunta: '¿Cuál fue el desenlace primario a la semana 16?', opciones: ['IGA 0/1 con reducción ≥ 2 puntos', 'Prurito NRS', 'SCORAD 50'], correcta: 0, explicacion: 'El desenlace primario fue IGA 0/1 con mejoría de al menos 2 puntos.', resumen: 'Resumen estructurado del estudio con tablas de eficacia y seguridad.' },
         { formato: 'live', imagen: 'img/noche-lectura.jpg', titulo: 'Podcast en vivo: piel, sueño y salud mental en el paciente con eccema', autor: 'Con la Dra. Gómez y un paciente invitado', fecha: 'Martes', duracion: '45 min', pregunta: '¿Qué escala mide el impacto en calidad de vida?', opciones: ['EASI', 'DLQI', 'IGA'], correcta: 1, explicacion: 'El DLQI mide el impacto dermatológico en la calidad de vida.', resumen: 'Conversación sobre el impacto del prurito en el sueño y el ánimo, con espacio de preguntas.' },
         { formato: 'info', imagen: 'img/derma-portada.jpg', titulo: 'Cómo aplicar terapia proactiva con corticoide tópico', autor: 'Comité editorial Lilly', fecha: '18 ago 2026', pregunta: '¿Con qué frecuencia se aplica en terapia proactiva?', opciones: ['Diario', '2 veces por semana en zonas de brote', 'Solo durante el brote'], correcta: 1, explicacion: 'La terapia proactiva mantiene el control con aplicación intermitente.', resumen: 'Infografía paso a paso para el paciente y su cuidador.' },
+        { formato: 'video', imagen: 'img/oscar-tablet.jpg', titulo: 'EASI en 5 minutos: cómo puntuar en la consulta', autor: 'Dra. Laura Gómez · Dermatóloga', fecha: '27 ago 2026', duracion: '6 min', progreso: 0, pregunta: '¿Qué puntaje EASI define enfermedad moderada?', opciones: ['1 a 6', '7 a 21', 'Mayor de 21'], correcta: 1, explicacion: 'Un EASI de 7 a 21 corresponde a enfermedad moderada.', resumen: 'Demostración por regiones corporales con ejemplos fotográficos.' },
+        { formato: 'encuesta', imagen: 'img/junta-medica.jpg', titulo: '¿Qué barrera pesa más para iniciar un biológico?', autor: 'Encuesta a la comunidad · 1 min', fecha: '10 ago 2026', pregunta: '¿Cuál es la principal barrera en tu consulta?', opciones: ['Autorización de la EPS', 'Temor a la inmunosupresión', 'Desconocimiento de los criterios'], correcta: 0, explicacion: 'Gracias por tu respuesta. Los resultados agregados se publican el próximo mes.', resumen: 'Encuesta breve para orientar el próximo webinar.' },
       ],
     },
 
@@ -173,6 +191,8 @@ function app() {
       tema: { foto: 'img/maria-paciente.jpg', momento: 'Momento 1 · Búsqueda rápida', titulo: 'María tiene 54 años y una HbA1c de 9,2 %', hora: '9:00 – 11:00 am · en consulta', historia: 'María llega con el reporte de laboratorio. Óscar necesita decidir el tratamiento en los próximos cinco minutos. Entra a la enfermedad, elige Tratamiento y encuentra el algoritmo sin buscar entre cien resultados.', puntos: ['Tres subniveles fijos: Diagnóstico, Tratamiento e Infografías para pacientes', 'Cada pieza dice qué es, cuánto toma y cuándo se actualizó', 'La barra del RAG interno consulta solo los estudios aprobados por Lilly (fase 2)'] },
       detalle: { foto: 'img/oscar-tablet.jpg', momento: 'Momento 1 · Pieza gráfica', titulo: 'El algoritmo de decisión en una pantalla', hora: '9:00 – 11:00 am · en consulta', historia: 'Óscar recorre las ramas de arriba abajo: estilo de vida, farmacológico inicial, comorbilidad, intensificación. María tiene obesidad y riesgo cardiovascular, así que abre la tercera rama y ahí está la respuesta. Lo guarda con un toque para la próxima consulta.', puntos: ['Contenido médico: habla de la enfermedad y del principio activo, no de la marca', 'Referencia bibliográfica y notas al pie en cada pieza', 'Cada rama se abre y se cierra como una lista nativa: nada de diagramas que hay que arrastrar'] },
       formacion: { foto: 'img/almuerzo-tablet.jpg', momento: 'Momento 2 y 3 · Formación ágil', titulo: 'Óscar almuerza y tiene 30 minutos', hora: '12:00 – 12:30 pm · antes de dormir', historia: 'Ya no hay urgencia. Óscar quiere ver el webinar de la Dra. Rojas, leer el resumen de un estudio o terminar el microaprendizaje que dejó al 35 %. Todo está en el canal de la enfermedad, en el formato que le sirva en ese momento.', puntos: ['Multiformato: video on demand, en vivo, estudio PDF, infografía y encuesta', 'Información para prescribir en una sección aparte: es contenido comercial', 'Cada consumo deja rastro para el dashboard de trazabilidad'] },
+      registro: { foto: 'img/oscar-consulta.jpg', momento: 'Momento 0 · Registro', titulo: 'Cómo llega Óscar a Lilly 360', hora: 'Una sola vez, desde el correo de invitación', historia: 'Óscar recibe la invitación y se registra en cinco pantallas: correo, país y perfil profesional, consentimientos y listo. Los mismos datos que hoy pide Lilly Conexiones, pero una tarea por pantalla y sin cajas con borde negro.', puntos: ['Correo, Google o LinkedIn para entrar', 'Consentimientos con interruptores: solo el de privacidad es obligatorio', 'Termina con la cuenta verificada como profesional de la salud'] },
+      dashboard: { foto: 'img/junta-medica.jpg', momento: 'Back office · Trazabilidad', titulo: 'Lo que Lilly ve: trazabilidad', hora: 'Equipo de Lilly, no el médico', historia: 'Todo lo que Óscar hace deja rastro: esto es lo que ve el equipo de Lilly. Qué se abre, cuánto se ve, qué se guarda y qué se pregunta, por enfermedad y por formato, para decidir el próximo contenido.', puntos: ['Es otro rol: sin tab bar, hoja ni sidebar del médico', 'Consumo por enfermedad, formato y momento del día', 'Preguntas al RAG como señal de qué falta en el contenido'] },
       guardados: { foto: 'img/estudio-pdf.jpg', momento: 'Biblioteca personal', titulo: 'Lo que Óscar marcó para volver', hora: 'Cualquier momento', historia: 'Cada bookmark de un algoritmo, una tabla o un video cae aquí. Es la lista corta que Óscar abre antes de la consulta o al final del día.', puntos: ['Se alimenta del bookmark de la nav bar', 'Abre la pieza en su pantalla: detalle o formación', 'Vacío honesto: dice qué hacer para llenarla'] },
       perfil: { foto: 'img/junta-medica.jpg', momento: 'Cuenta y preferencias', titulo: 'Óscar decide qué le llega', hora: 'Una vez, al empezar', historia: 'Especialidad verificada, intereses por enfermedad y qué notificaciones quiere. La información para prescribir vive aquí, aparte del contenido médico.', puntos: ['Intereses como chips: alimentan el Inicio y las notificaciones', 'Interruptores iOS reales para las notificaciones', 'Cerrar sesión e información legal al final, como en iOS'] },
       pieza: { foto: 'img/noche-lectura.jpg', momento: 'Momento 3 · Microaprendizaje', titulo: 'El contenido pregunta de vuelta', hora: '9:00 – 9:30 pm · antes de dormir', historia: 'A los cinco minutos el video se detiene y le hace una pregunta a Óscar. Si responde, suma para su certificado. Si no, el video sigue. Así el contenido no es un PDF que se lee de corrido, sino algo que conversa con el médico.', puntos: ['Interacciones dentro del contenido: preguntas, encuestas, casos', 'Progreso, certificado y ruta de aprendizaje', 'Guardar y compartir con colegas desde la misma pantalla'] },
@@ -226,13 +246,14 @@ function app() {
     get hojaGap() { return this.hoja.gaps[this.hoja.detent] || 0; },
     get hojaTabOculta() {
       if (this.dispositivo !== 'iphone') return false;
+      if (this.sinCascaron.includes(this.pantalla)) return true;
       if (this.modal || this.rag.abierto || this.rag.fuentesAbierto) return true;
       if (!(this.pantalla === 'inicio' || this.pantalla === 'tema')) return false;
       return this.hoja.arrastrando ? this.hoja.y > this.hojaY('small') + 60 : this.hoja.detent !== 'small';
     },
     get ragSugerencias() { return this.ragBanco[this.enfermedad].map(r => r.p); },
     get ragRespuesta() { const b = this.ragBanco[this.enfermedad]; return b.find(r => r.p === this.rag.pregunta) || b[0]; },
-    get tituloNativo() { return { tema: 'Búsqueda rápida', detalle: this.detalle.titulo || 'Algoritmo', formacion: 'Formación ágil', pieza: this.pieza.titulo || this.nombreFormato(this.pieza.formato), guardados: 'Guardados', perfil: 'Perfil' }[this.pantalla] || ''; },
+    get tituloNativo() { return { tema: 'Búsqueda rápida', detalle: this.detalle.titulo || 'Algoritmo', formacion: 'Formación ágil', pieza: this.pieza.titulo || this.nombreFormato(this.pieza.formato), guardados: 'Guardados', perfil: 'Perfil', registro: 'Registro', dashboard: 'Back office' }[this.pantalla] || ''; },
     get piezaActual() { return this.pantalla === 'pieza' ? this.pieza : this.detalle; },
     get tabActivo() { return ['guardados', 'perfil'].includes(this.pantalla) ? this.pantalla : 'inicio'; },
     // Sidebar con selección única: raíz, o la enfermedad dentro de Búsqueda rápida o de Formación ágil.

@@ -192,6 +192,7 @@
   .is-ipad    .ios-sidebar { width: 240px; opacity: 1; padding: 18px 14px; border-right: 1px solid rgba(255,255,255,.6); }
   .is-desktop .ios-sidebar { width: 260px; opacity: 1; padding: 20px 16px; border-right: 1px solid rgba(255,255,255,.6); }
   .ios-sidebar > * { width: 100%; min-width: 212px; }
+  .is-ipad .ios-sidebar.is-fuera, .is-desktop .ios-sidebar.is-fuera { width: 0; opacity: 0; padding: 18px 0; border-right: 0; }
   .ios-side-item { display: flex; align-items: center; gap: 12px; width: 100%; height: 44px; padding: 0 14px; border-radius: 14px; font-size: 15px; font-weight: 500; color: #1A1A1A; text-align: left; transition: background .3s cubic-bezier(.32,.72,0,1), box-shadow .3s; }
   .ios-side-item:hover { background: rgba(255,255,255,.45); }
   .ios-side-item[aria-selected="true"] { background: #fff; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 6px 16px rgba(0,0,0,.05); }
@@ -315,6 +316,17 @@
   .guia-foto { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 16px; background: rgba(255,255,255,.04); }
   .guia-foto img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; transition: opacity 500ms ease; }
   .guia-foto::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 55%); }
+  /* ===== Registro (onboarding iOS de vidrio): deslizamiento entre pasos y segmentos de progreso ===== */
+  .reg-in   { animation: reg-in 380ms cubic-bezier(.32,.72,0,1) both; }
+  .reg-back { animation: reg-back 380ms cubic-bezier(.32,.72,0,1) both; }
+  @keyframes reg-in   { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+  @keyframes reg-back { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+  .reg-seg { height: 4px; flex: 1; border-radius: 9999px; background: rgba(60,60,67,.14); transition: background 300ms ease; }
+  .reg-seg.is-done { background: #1A1A1A; }
+  .reg-campo { flex: 1; min-width: 0; background: transparent; outline: none; font-size: 16px; color: #1A1A1A; }
+  .reg-campo::placeholder { color: #9AA0A6; }
+  .reg-menu { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 5; border-radius: 18px; overflow: hidden; animation: siri-card-in 250ms cubic-bezier(.32,.72,0,1) both; }
+  @media (prefers-reduced-motion: reduce) { .reg-in, .reg-back, .reg-menu { animation: none !important; } }
 </style>
 </head>
 <body class="font-sans bg-[#0B0B0D] text-white h-screen overflow-hidden antialiased" x-data="app()" x-init="init()" x-cloak>
@@ -418,7 +430,7 @@
 
         <div class="proto-row">
           <!-- Sidebar de vidrio (iPad y escritorio): reemplaza a la tab bar -->
-          <aside class="ios-sidebar">
+          <aside class="ios-sidebar" :class="{ 'is-fuera': sinCascaron.includes(pantalla) }">
             <p class="px-[14px] text-[13px] font-semibold tracking-tight"><span class="text-lilly">Lilly</span> <span class="text-ink-3">360</span></p>
             <nav class="mt-5 space-y-1" aria-label="Secciones">
               <template x-for="t in tabBar" :key="'side-' + t.id">
@@ -445,15 +457,15 @@
             </nav>
             <button @click="irRaiz('perfil')" class="mt-auto flex items-center gap-3 px-[10px] pt-4 text-left press">
               <span class="glass-icon !h-10 !w-10 text-[14px] font-semibold">Ó</span>
-              <span class="min-w-0"><span class="block text-[14px] font-semibold text-ink truncate">Óscar</span><span class="block text-[12px] text-ink-2 truncate">Endocrinología</span></span>
+              <span class="min-w-0"><span class="block text-[14px] font-semibold text-ink truncate">Dr. Óscar Martínez</span><span class="block text-[12px] text-ink-2 truncate">Endocrinología</span></span>
             </button>
           </aside>
 
           <div class="proto-main" x-ref="main">
         <!-- Aurora solo en el Inicio, en los tres dispositivos: detrás del contenido, encima del .bg-scene, sin tocar el tinte de las otras pantallas -->
-        <div x-show="pantalla === 'inicio'" x-transition.opacity.duration.600ms class="aurora" aria-hidden="true"></div>
+        <div x-show="pantalla === 'inicio' || pantalla === 'registro'" x-transition.opacity.duration.600ms class="aurora" aria-hidden="true"></div>
         <!-- Nav bar iOS 26: Atrás en círculo de vidrio, título compacto (el de la pieza en Detalle y Pieza), acciones orbe · bookmark · share -->
-        <div class="ios-navbar" :class="{ 'is-scrolled': scrolled }" x-show="!['inicio', 'guardados', 'perfil'].includes(pantalla) && !(dispositivo === 'iphone' && pantalla === 'tema')">
+        <div class="ios-navbar" :class="{ 'is-scrolled': scrolled }" x-show="!['inicio', 'guardados', 'perfil', 'registro', 'dashboard'].includes(pantalla) && !(dispositivo === 'iphone' && pantalla === 'tema')">
           <button @click="atras()" class="ios-back glass press" aria-label="Atrás"><i data-lucide="chevron-left" class="h-[22px] w-[22px]"></i></button>
           <span class="truncate text-[17px] font-semibold text-ink pointer-events-none transition-opacity duration-300"
                 :class="['detalle', 'pieza'].includes(pantalla) && dispositivo === 'iphone' ? ['relative flex-1 min-w-0 px-3 text-left', scrolled ? 'opacity-100' : 'opacity-0'] : 'absolute left-1/2 -translate-x-1/2 max-w-[50%]'"
@@ -479,7 +491,7 @@
           <div x-show="pantalla === 'inicio' || (dispositivo === 'iphone' && pantalla === 'tema')" :class="{ 'inicio-enter': inicioPrimeraVez }" @animationend.self="inicioPrimeraVez = false" class="px-5 pb-[200px] @3xl:px-10 @3xl:pt-6 @3xl:pb-16 @6xl:px-14 @6xl:pt-10 @6xl:max-w-[1180px] @6xl:mx-auto @6xl:grid @6xl:grid-cols-2 @6xl:gap-12 @6xl:items-start">
             <div class="stagger @3xl:max-w-[720px]">
               <div class="pt-2 flex items-start justify-between">
-                <h1 class="ios-large-title" x-text="saludo + ', Óscar'"></h1>
+                <h1 class="ios-large-title" x-text="saludo + ', Dr.\u00A0Óscar'"></h1>
                 <span class="mt-2 shrink-0 whitespace-nowrap text-[13px] font-semibold tracking-tight @3xl:hidden"><span class="text-lilly">Lilly</span> <span class="text-ink-3">360</span></span>
               </div>
 
@@ -697,9 +709,15 @@
           <!-- Una tarea: elegir qué consumir ahora. El título grande es el selector de enfermedad (patrón «título con menú»): no hay segmented (M4).
                Estado local: `menu` (abierto/cerrado), `claves` (orden de las enfermedades), `medios` (tinte suave de la zona media) y helpers de teclado (B8).
                Responsivo por container queries: @3xl (tablet) grilla de 2 y ficha a lo ancho; @6xl (escritorio) grilla de 3 y ficha como columna lateral sticky. -->
-          <div x-show="pantalla === 'formacion'" class="pb-32 @3xl:pb-16" x-data="{
-            menu: false,
-            init() { if (new URLSearchParams(location.search).get('menu') === '1') this.menu = true; },
+          <div x-show="pantalla === 'formacion'" class="relative pb-32 @3xl:pb-16" x-data="{
+            menu: false, ficha: false,
+            init() {
+              const q = new URLSearchParams(location.search);
+              this.$watch('ficha', v => { if ('modal' in this) this.modal = v; });
+              this.$watch('pantalla', p => { if (p !== 'formacion' && this.ficha) this.ficha = false; });
+              if (q.get('menu') === '1') this.menu = true;
+              if (q.get('ficha') === '1' && q.get('p') === 'formacion') this.ficha = true;
+            },
             claves: ['diabetes', 'mama', 'derma'],
             velos: { diabetes: 'to-diabetes/55', mama: 'to-mama/55', derma: 'to-derma/55' },
             medios: { diabetes: 'from-diabetes/20 via-diabetes/[.06] to-white/0', mama: 'from-mama/20 via-mama/[.06] to-white/0', derma: 'from-derma/20 via-derma/[.06] to-white/0' },
@@ -739,13 +757,27 @@
                 </div>
               </div>
 
+              <!-- Tarjeta de marca: lo único comercial de la pantalla. Cada enfermedad va amarrada a su producto (Mounjaro · Verzenio · Ebglyss). -->
+              <section class="mt-6 rounded-3xl bg-white border border-lilly/30 shadow-glass p-4 @3xl:p-5" :aria-label="'Contenido comercial · ' + enf.producto">
+                <p class="text-[12px] font-semibold uppercase tracking-wide text-lilly">Contenido comercial</p>
+                <p class="mt-1 text-[17px] font-semibold text-ink" x-text="'Conoce ' + enf.producto"></p>
+                <p class="mt-0.5 text-[15px] text-ink-2" x-text="enf.principio + ' · Lilly'"></p>
+                <div class="mt-4 flex flex-col gap-2.5 @3xl:flex-row @3xl:gap-3">
+                  <button @click="ficha = true" class="ios-btn ios-btn-accent press !h-11 !text-[15px] !px-5 w-full @3xl:w-auto"><i data-lucide="file-badge" class="h-4 w-4"></i>Información para prescribir</button>
+                  <button @click="formato = 'pdf'" class="ios-btn-glass glass press !h-11 !text-[15px] !px-5 w-full @3xl:w-auto">Ver estudios</button>
+                </div>
+              </section>
+
+              <!-- De aquí en adelante todo es contenido médico -->
+              <h2 class="mt-8 text-[22px] font-semibold tracking-tight text-ink">Actualización médica</h2>
+
               <!-- Seguir viendo: la pieza que quedó a medias (momento 3 tal como lo cuenta la guía) -->
               <template x-for="c in (continuar ? [continuar] : [])" :key="'cont' + enfermedad + c.titulo">
-                <section class="mt-6">
+                <section class="mt-4">
                   <h2 class="text-[13px] font-medium text-ink-2 px-1">Seguir viendo</h2>
                   <div class="glass mt-2 rounded-3xl overflow-hidden flex items-stretch">
                     <button @click="abrirPieza(c)" class="relative w-[104px] @3xl:w-[140px] shrink-0 overflow-hidden flex items-center justify-center bg-gradient-to-br press" :class="medios[enfermedad]" :aria-label="'Continuar ' + c.titulo">
-                      <img x-show="c.imagen" :src="c.imagen || ''" :style="'object-position:' + (typeof posFoto === 'function' ? posFoto(c.imagen) : 'center')" alt="" loading="lazy" decoding="async" class="absolute inset-0 h-full w-full object-cover" />
+                      <img x-show="c.imagen" :src="c.imagen || ''" :style="'object-position:' + (typeof posFoto === 'function' ? posFoto(c.imagen) : 'center')" alt="" loading="eager" decoding="async" class="absolute inset-0 h-full w-full object-cover" />
                       <span x-show="c.imagen" class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent" :class="velos[enfermedad]" aria-hidden="true"></span>
                       <i :data-lucide="iconoFormato(c.formato)" class="h-8 w-8 text-ink/60" :class="c.imagen ? 'hidden' : ''" stroke-width="1.5"></i>
                       <span x-show="c.imagen" class="glass-dark absolute left-2 bottom-2 inline-flex h-7 w-7 items-center justify-center rounded-full"><i :data-lucide="iconoFormato(c.formato)" class="h-3.5 w-3.5" stroke-width="2"></i></span>
@@ -765,7 +797,7 @@
               </template>
 
               <!-- Filtro por formato: chips en vidrio, activo en tinta; flechas ← → recorren (B8) -->
-              <div x-ref="chips" role="tablist" aria-label="Formato" class="mt-6 -mx-5 px-5 @3xl:mx-0 @3xl:px-0 flex gap-2 overflow-x-auto scroll-hide @3xl:flex-wrap">
+              <div x-ref="chips" role="tablist" aria-label="Formato" class="mt-5 -mx-5 px-5 @3xl:mx-0 @3xl:px-0 flex gap-2 overflow-x-auto scroll-hide @3xl:flex-wrap">
                 <template x-for="f in formatos" :key="'chip' + f.id">
                   <button role="tab" @click="formato = f.id" @keydown.arrow-right.prevent="moverChip(1)" @keydown.arrow-left.prevent="moverChip(-1)"
                           class="ios-chip glass shrink-0 press aria-selected:!bg-ink aria-selected:!text-white aria-selected:!border-ink aria-selected:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1F5FA8]"
@@ -773,16 +805,16 @@
                 </template>
               </div>
 
-              <div class="mt-5 @6xl:flex @6xl:gap-8 @6xl:items-start">
+              <div class="mt-5">
                 <!-- Contenidos: el envoltorio se recrea al cambiar formato o enfermedad para que la entrada escalonada vuelva a correr -->
-                <div class="@6xl:flex-1 @6xl:min-w-0">
+                <div>
                   <template x-for="grupo in [enfermedad + '·' + formato]" :key="grupo">
                     <div class="stagger grid grid-cols-1 gap-4 @3xl:grid-cols-2 @3xl:gap-5 @6xl:grid-cols-3">
-                      <template x-for="c in contenidoFormacion" :key="'fc' + c.titulo">
+                      <template x-for="(c, i) in contenidoFormacion" :key="'fc' + c.titulo">
                         <button @click="abrirPieza(c)" class="glass press w-full h-full rounded-3xl overflow-hidden text-left flex flex-col">
                           <div class="aspect-[16/10] @3xl:aspect-auto @3xl:h-[140px] shrink-0 relative overflow-hidden flex items-center justify-center bg-gradient-to-br" :class="medios[enfermedad]">
                             <!-- Foto (si la pieza la trae) con velo: transparente arriba → tinte de la enfermedad abajo, para que badges e ícono sigan legibles -->
-                            <img x-show="c.imagen" :src="c.imagen || ''" :style="'object-position:' + (typeof posFoto === 'function' ? posFoto(c.imagen) : 'center')" alt="" loading="lazy" decoding="async" class="absolute inset-0 h-full w-full object-cover" />
+                            <img x-show="c.imagen" :src="c.imagen || ''" :style="'object-position:' + (typeof posFoto === 'function' ? posFoto(c.imagen) : 'center')" alt="" :loading="i === 0 ? 'eager' : 'lazy'" decoding="async" class="absolute inset-0 h-full w-full object-cover" />
                             <span x-show="c.imagen" class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent" :class="velos[enfermedad]" aria-hidden="true"></span>
                             <i :data-lucide="iconoFormato(c.formato)" class="h-10 w-10 text-ink/60" :class="c.imagen ? 'hidden' : ''" stroke-width="1.5"></i>
                             <span x-show="c.imagen" class="glass-dark absolute left-3 bottom-3 inline-flex h-8 w-8 items-center justify-center rounded-full"><i :data-lucide="iconoFormato(c.formato)" class="h-4 w-4" stroke-width="2"></i></span>
@@ -808,22 +840,36 @@
                   </template>
                 </div>
 
-                <!-- Información para prescribir: contenido comercial. La separación la dan el título de sección y el aire, no un borde.
-                     En tablet es una tarjeta de vidrio a lo ancho; en escritorio, columna lateral sticky. -->
-                <aside class="mt-8 @3xl:rounded-3xl @3xl:bg-white/60 @3xl:backdrop-blur-2xl @3xl:border @3xl:border-white/60 @3xl:shadow-glass @3xl:p-5 @6xl:mt-0 @6xl:w-[320px] @6xl:shrink-0 @6xl:sticky @6xl:top-4">
-                  <h2 class="text-[22px] font-semibold tracking-tight text-ink px-1 @3xl:px-0 @3xl:text-[20px]">Información para prescribir</h2>
-                  <div class="glass ios-list mt-3 @3xl:mt-4 @3xl:bg-white/70">
-                    <button class="ios-row press">
-                      <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-ink/[.06] text-ink"><i data-lucide="file-text" class="h-5 w-5" stroke-width="1.75"></i></span>
-                      <span class="flex-1 min-w-0">
-                        <span class="block text-[17px] font-medium text-ink leading-snug"><span x-text="enf.producto"></span> <span class="text-ink-2 font-normal" x-text="'· ' + enf.principio"></span></span>
-                        <span class="block mt-0.5 text-[13px] text-ink-2">Ficha técnica · PDF · 24 páginas</span>
-                      </span>
-                      <i data-lucide="chevron-right" class="h-5 w-5 shrink-0 text-ink-3"></i>
-                    </button>
+              </div>
+            </div>
+
+            <!-- Ficha de prescripción (contenido comercial): hoja de vidrio en iPhone, diálogo centrado en tablet y escritorio. Comparte el estado global `modal` para ocultar la tab bar. -->
+            <div x-show="ficha" x-cloak class="absolute inset-0 z-40 flex flex-col justify-end @3xl:justify-start @3xl:items-center @3xl:pt-16"
+                 x-transition:enter="transition-opacity duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                 x-transition:leave="transition-opacity duration-300 delay-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+              <div class="absolute inset-0 bg-ink/30 backdrop-blur-[4px]" aria-hidden="true" @click="ficha = false"></div>
+              <div x-show="ficha" role="dialog" aria-modal="true" :aria-label="'Información para prescribir de ' + enf.producto" @keydown.escape.window="ficha = false"
+                   x-transition:enter="transition-transform duration-[420ms] ease-[cubic-bezier(.32,.72,0,1)]" x-transition:enter-start="translate-y-full @3xl:translate-y-4" x-transition:enter-end="translate-y-0"
+                   x-transition:leave="transition-transform duration-300 ease-[cubic-bezier(.32,.72,0,1)]" x-transition:leave-start="translate-y-0" x-transition:leave-end="translate-y-full @3xl:translate-y-4"
+                   class="glass-strong ios-sheet sticky bottom-0 px-5 pb-8 shadow-[0_-12px_40px_rgba(0,0,0,.12)] @3xl:static @3xl:before:hidden @3xl:w-[480px] @3xl:!rounded-[28px] @3xl:p-6 @3xl:shadow-[0_24px_64px_rgba(0,0,0,.18)]">
+                <p class="text-[12px] font-semibold uppercase tracking-wide text-lilly">Contenido comercial</p>
+                <h2 class="mt-1 text-[22px] font-semibold tracking-tight text-ink" x-text="enf.producto"></h2>
+                <p class="mt-0.5 text-[15px] text-ink-2"><span x-text="enf.principio"></span> · Lilly · <span x-text="enf.nombre"></span></p>
+                <div class="ios-list glass mt-4">
+                  <div class="ios-row">
+                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-lilly-soft text-lilly"><i data-lucide="badge-check" class="h-5 w-5"></i></span>
+                    <span class="flex-1 min-w-0"><span class="block text-[15px] font-medium text-ink">Aprobado por INVIMA</span><span class="block text-[13px] text-ink-2">Registro sanitario vigente en Colombia</span></span>
                   </div>
-                  <p class="mt-2.5 px-4 text-[12px] text-ink-3 @3xl:px-1">Contenido comercial · Aprobado por INVIMA</p>
-                </aside>
+                  <div class="ios-row">
+                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-ink/[.06] text-ink"><i data-lucide="file-text" class="h-5 w-5"></i></span>
+                    <span class="flex-1 min-w-0"><span class="block text-[15px] font-medium text-ink">Ficha técnica</span><span class="block text-[13px] text-ink-2">PDF · 24 páginas · Actualizada ago 2026</span></span>
+                  </div>
+                </div>
+                <p class="mt-3 px-1 text-[12px] text-ink-3">Material dirigido exclusivamente a profesionales de la salud.</p>
+                <div class="mt-4 flex gap-3">
+                  <button class="ios-btn ios-btn-accent flex-1 press" @click="ficha = false"><i data-lucide="download" class="h-5 w-5"></i>Descargar</button>
+                  <button class="ios-btn-glass glass press" @click="ficha = false">Cerrar</button>
+                </div>
               </div>
             </div>
           </div>
@@ -834,14 +880,15 @@
                Al responder (M6) las opciones se bloquean, la correcta lleva check y la incorrecta ×; la hoja baja sola a los 2 s y el video sigue.
                `?pregunta=1` abre la hoja al cargar (solo para capturas). Responsivo con una sola grilla de 4 piezas (reproductor, título, pregunta, resumen). -->
           <div x-show="pantalla === 'pieza'" class="relative pb-32 @3xl:pb-16" x-data="{
-            reproduciendo: false, avance: 35, hoja: false, _t: null,
+            reproduciendo: false, avance: 35, hoja: false, ficha: false, _t: null,
             init() {
+              this.$watch('ficha', v => { if ('modal' in this) this.modal = v; });
               this.$watch('pieza', () => { clearTimeout(this._t); this.reproduciendo = false; this.hoja = false; this.avance = pieza.progreso ?? 0; });
               // La hoja es modal: mientras está abierta el cascarón oculta la tab bar (estado global `modal`, defensivo por si aún no existe).
               this.$watch('hoja', v => { if ('modal' in this) this.modal = v; });
-              this.$watch('pantalla', p => { if (p !== 'pieza' && this.hoja) { clearTimeout(this._t); this.hoja = false; this.reproduciendo = false; } });
+              this.$watch('pantalla', p => { if (p !== 'pieza') { this.ficha = false; if (this.hoja) { clearTimeout(this._t); this.hoja = false; this.reproduciendo = false; } } });
               // Parámetros de captura (van después de los watchers para que `modal` también se active): ?pregunta=1 abre la hoja, ?r=<i> responde.
-              const q = new URLSearchParams(location.search); if (q.get('pregunta') === '1') { this.avance = 60; this.hoja = true; } if (q.get('r') !== null) this.$nextTick(() => { respuesta = +q.get('r'); });
+              const q = new URLSearchParams(location.search); if (q.get('pregunta') === '1') { this.avance = 60; this.hoja = true; } if (q.get('r') !== null) this.$nextTick(() => { respuesta = +q.get('r'); }); if (q.get('ficha') === '1' && q.get('p') === 'pieza') this.ficha = true;
             },
             minutos(p) { return parseInt(p.duracion) || 15; },
             tiempos(p) {
@@ -900,6 +947,7 @@
               <div class="pt-5 @3xl:pt-6 @3xl:col-start-1 @3xl:row-start-2 max-w-[640px]">
                 <h1 class="text-[22px] @3xl:text-[26px] @6xl:text-[28px] font-semibold leading-tight tracking-tight text-ink" x-text="pieza.titulo"></h1>
                 <p class="mt-2 text-[15px] text-ink-2" x-text="[pieza.autor, pieza.autor && pieza.autor.includes(pieza.fecha) ? null : pieza.fecha].filter(Boolean).join(' · ')"></p>
+                <p class="mt-1 text-[13px] text-ink-2">Canal <span x-text="enf.nombre"></span> · <span class="font-medium text-lilly" x-text="enf.producto"></span></p>
               </div>
 
               <!-- Pregunta: tarjeta inline (sin asa). En iPhone es el registro de lo respondido; en @3xl+ es donde se responde y se ilumina al llegar al minuto 5 -->
@@ -932,7 +980,15 @@
               <div class="mt-7 @3xl:mt-6 @3xl:col-start-1 @3xl:row-start-3 max-w-[640px]">
                 <h2 class="text-[17px] font-semibold text-ink">Resumen</h2>
                 <p class="mt-1.5 text-[15px] @6xl:text-[16px] leading-[1.5] text-ink/90" x-text="pieza.resumen"></p>
-                <div class="mt-7 @3xl:flex @3xl:items-center @3xl:gap-4">
+                <!-- Contenido comercial, separado del médico: abre la ficha de prescripción del producto del canal -->
+                <div class="ios-list glass mt-7">
+                  <button @click="ficha = true" class="ios-row press">
+                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-lilly-soft text-lilly"><i data-lucide="file-badge" class="h-5 w-5"></i></span>
+                    <span class="flex-1 min-w-0"><span class="block text-[15px] font-medium text-ink" x-text="'Información para prescribir de ' + enf.producto"></span><span class="block text-[13px] text-ink-2">Contenido comercial · Aprobado por INVIMA</span></span>
+                    <i data-lucide="chevron-right" class="h-5 w-5 shrink-0 text-ink-3"></i>
+                  </button>
+                </div>
+                <div class="mt-5 @3xl:flex @3xl:items-center @3xl:gap-4">
                   <button class="ios-btn w-full @3xl:w-auto transition-opacity duration-300" :class="respuesta === null ? 'opacity-40 cursor-not-allowed' : ''" :disabled="respuesta === null" :aria-disabled="respuesta === null ? 'true' : 'false'"><i data-lucide="award" class="h-5 w-5"></i>Obtener certificado</button>
                   <p class="mt-2.5 @3xl:mt-0 text-center @3xl:text-left text-[13px] text-ink-2 transition-opacity duration-300" x-text="respuesta === null ? 'Responde la pregunta para obtener el certificado' : '1 de 1 preguntas · lista para certificar'"></p>
                 </div>
@@ -967,6 +1023,36 @@
                      class="mt-3 rounded-2xl bg-ink/[.05] px-4 py-3">
                   <p class="text-[15px] leading-[1.5] text-ink" x-text="respuesta === null ? '' : explicacion(pieza, respuesta)"></p>
                   <p class="mt-1.5 text-[12px] text-ink-2">El video continúa en un momento…</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ficha de prescripción (contenido comercial): hoja de vidrio en iPhone, diálogo centrado en tablet y escritorio. Comparte el estado global `modal` para ocultar la tab bar. -->
+            <div x-show="ficha" x-cloak class="absolute inset-0 z-40 flex flex-col justify-end @3xl:justify-start @3xl:items-center @3xl:pt-16"
+                 x-transition:enter="transition-opacity duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                 x-transition:leave="transition-opacity duration-300 delay-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+              <div class="absolute inset-0 bg-ink/30 backdrop-blur-[4px]" aria-hidden="true" @click="ficha = false"></div>
+              <div x-show="ficha" role="dialog" aria-modal="true" :aria-label="'Información para prescribir de ' + enf.producto" @keydown.escape.window="ficha = false"
+                   x-transition:enter="transition-transform duration-[420ms] ease-[cubic-bezier(.32,.72,0,1)]" x-transition:enter-start="translate-y-full @3xl:translate-y-4" x-transition:enter-end="translate-y-0"
+                   x-transition:leave="transition-transform duration-300 ease-[cubic-bezier(.32,.72,0,1)]" x-transition:leave-start="translate-y-0" x-transition:leave-end="translate-y-full @3xl:translate-y-4"
+                   class="glass-strong ios-sheet sticky bottom-0 px-5 pb-8 shadow-[0_-12px_40px_rgba(0,0,0,.12)] @3xl:static @3xl:before:hidden @3xl:w-[480px] @3xl:!rounded-[28px] @3xl:p-6 @3xl:shadow-[0_24px_64px_rgba(0,0,0,.18)]">
+                <p class="text-[12px] font-semibold uppercase tracking-wide text-lilly">Contenido comercial</p>
+                <h2 class="mt-1 text-[22px] font-semibold tracking-tight text-ink" x-text="enf.producto"></h2>
+                <p class="mt-0.5 text-[15px] text-ink-2"><span x-text="enf.principio"></span> · Lilly · <span x-text="enf.nombre"></span></p>
+                <div class="ios-list glass mt-4">
+                  <div class="ios-row">
+                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-lilly-soft text-lilly"><i data-lucide="badge-check" class="h-5 w-5"></i></span>
+                    <span class="flex-1 min-w-0"><span class="block text-[15px] font-medium text-ink">Aprobado por INVIMA</span><span class="block text-[13px] text-ink-2">Registro sanitario vigente en Colombia</span></span>
+                  </div>
+                  <div class="ios-row">
+                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-ink/[.06] text-ink"><i data-lucide="file-text" class="h-5 w-5"></i></span>
+                    <span class="flex-1 min-w-0"><span class="block text-[15px] font-medium text-ink">Ficha técnica</span><span class="block text-[13px] text-ink-2">PDF · 24 páginas · Actualizada ago 2026</span></span>
+                  </div>
+                </div>
+                <p class="mt-3 px-1 text-[12px] text-ink-3">Material dirigido exclusivamente a profesionales de la salud.</p>
+                <div class="mt-4 flex gap-3">
+                  <button class="ios-btn ios-btn-accent flex-1 press" @click="ficha = false"><i data-lucide="download" class="h-5 w-5"></i>Descargar</button>
+                  <button class="ios-btn-glass glass press" @click="ficha = false">Cerrar</button>
                 </div>
               </div>
             </div>
@@ -1035,8 +1121,442 @@
             <p class="mt-4 text-center text-[12px] text-ink-3">Lilly 360 · versión de prueba 0.1</p>
           </div>
 
+          <!-- ============ REGISTRO · momento 0: onboarding iOS de vidrio en cinco pasos (los mismos datos que Lilly Conexiones, una tarea por pantalla).
+               Capa absoluta con scroll propio dentro de .proto-main (va después del cierre del contenedor scroll). Estado local en x-data. ============ -->
+          <div x-show="pantalla === 'registro'" class="@container screen-enter absolute inset-0 overflow-y-auto scroll-hide"
+               x-data="{ paso: 1, dir: 1, modo: 'crear', correo: '', pais: 'Colombia', menuPais: false, nombre: '', apellidos: '', esp: 'Endocrinología', menuEsp: false, cp: '', tel: '', priv: false, mail: true, llamadas: false, aviso: false, gustos: ['diabetes'],
+                         especialidades: ['Endocrinología', 'Oncología', 'Dermatología', 'Medicina interna', 'Medicina general'],
+                         ir(n) { this.dir = n > this.paso ? 1 : -1; this.paso = n; this.menuPais = false; this.menuEsp = false; this.$nextTick(() => lucide.createIcons()); },
+                         crear() { this.modo = 'crear'; this.ir(2); },
+                         login() { this.modo = 'login'; this.ir(2); },
+                         seguirCorreo() { if (this.modo === 'login') this.entrar('Sesión iniciada'); else this.ir(3); },
+                         entrar(msg) { irRaiz('inicio'); hojaIr('small'); hud(msg || 'Cuenta creada'); } }"
+               x-init="const q = new URLSearchParams(location.search); const n = +q.get('paso'); if (n >= 1 && n <= 5) { paso = n; if (n === 4) priv = false; } $nextTick(() => lucide.createIcons())">
+
+            <div class="min-h-full flex flex-col px-5 pb-8 pt-2 @3xl:items-center @3xl:justify-center @3xl:px-10 @3xl:py-10">
+              <div class="flex flex-col w-full flex-1 @3xl:flex-none @3xl:max-w-[520px] @3xl:glass @3xl:rounded-[28px] @3xl:p-8 @3xl:min-h-[640px]">
+
+                <!-- Cabecera: atrás + progreso (solo en los pasos con datos) -->
+                <div class="h-12 flex items-center gap-3">
+                  <button x-show="paso > 1 && paso < 5" @click="ir(paso - 1)" class="ios-back glass press" aria-label="Atrás"><i data-lucide="chevron-left" class="h-[22px] w-[22px]"></i></button>
+                  <div x-show="modo === 'crear' && paso > 1 && paso < 5" class="flex-1 flex gap-1.5 px-6" aria-label="Progreso del registro">
+                    <span class="reg-seg" :class="{ 'is-done': paso >= 2 }"></span><span class="reg-seg" :class="{ 'is-done': paso >= 3 }"></span><span class="reg-seg" :class="{ 'is-done': paso >= 4 }"></span>
+                  </div>
+                  <span x-show="paso > 1 && paso < 5" class="w-11"></span>
+                </div>
+
+                <!-- Paso 1 · Bienvenida -->
+                <template x-if="paso === 1">
+                  <div class="flex-1 flex flex-col justify-end pb-2 stagger" :class="dir > 0 ? 'reg-in' : 'reg-back'">
+                    <p class="text-[15px] font-semibold tracking-tight"><span class="text-lilly">Lilly</span> <span class="text-ink-3">360</span></p>
+                    <h1 class="ios-large-title mt-3 !text-[40px] @3xl:!text-[44px]">Tu consulta,<br>al minuto</h1>
+                    <p class="mt-3 text-[17px] text-ink-2">Para profesionales de la salud en Colombia</p>
+                    <button @click="crear()" class="ios-btn w-full mt-10 press">Crear cuenta</button>
+                    <button @click="login()" class="ios-btn-glass glass w-full mt-3 press">Ya tengo cuenta</button>
+                  </div>
+                </template>
+
+                <!-- Paso 2 · Correo (o inicio de sesión) -->
+                <template x-if="paso === 2">
+                  <div class="flex-1 flex flex-col pt-2" :class="dir > 0 ? 'reg-in' : 'reg-back'">
+                    <h1 class="ios-large-title" x-text="modo === 'login' ? 'Inicia sesión' : 'Tu correo'"></h1>
+                    <p class="mt-2 text-[15px] text-ink-2" x-text="modo === 'login' ? 'Con el correo con el que te registraste.' : 'Te enviaremos un enlace para confirmarlo.'"></p>
+                    <label class="glass ios-search mt-6 !h-[52px]">
+                      <i data-lucide="mail" class="h-5 w-5 shrink-0"></i>
+                      <input x-model="correo" type="email" inputmode="email" autocomplete="email" placeholder="nombre@clinica.com" class="reg-campo !text-[17px]" @keydown.enter="seguirCorreo()" />
+                    </label>
+                    <button @click="seguirCorreo()" class="ios-btn w-full mt-4 press">Continuar</button>
+                    <div class="my-5 flex items-center gap-3 text-[13px] text-ink-3"><span class="h-px flex-1 bg-sep"></span>o<span class="h-px flex-1 bg-sep"></span></div>
+                    <button @click="seguirCorreo()" class="ios-btn-glass glass w-full press !justify-start gap-3 px-4"><span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white text-[14px] font-bold text-[#4285F4] shadow-sm">G</span><span class="flex-1 text-center pr-7">Continuar con Google</span></button>
+                    <button @click="seguirCorreo()" class="ios-btn-glass glass w-full mt-3 press !justify-start gap-3 px-4"><span class="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#0A66C2] text-[12px] font-bold text-white">in</span><span class="flex-1 text-center pr-7">Continuar con LinkedIn</span></button>
+                    <p class="mt-auto pt-6 text-center text-[12px] text-ink-3">Lilly 360 es solo para profesionales de la salud.</p>
+                  </div>
+                </template>
+
+                <!-- Paso 3 · País y perfil profesional -->
+                <template x-if="paso === 3">
+                  <div class="flex-1 flex flex-col pt-2" :class="dir > 0 ? 'reg-in' : 'reg-back'">
+                    <h1 class="ios-large-title">Perfil profesional</h1>
+                    <p class="mt-2 text-[15px] text-ink-2">Los mismos datos que verifica Lilly para darte acceso.</p>
+                    <div class="glass ios-list mt-6 !overflow-visible relative">
+                      <button @click="menuPais = !menuPais; menuEsp = false" class="ios-row press"><span class="w-[112px] text-[15px] text-ink-2">País</span><span class="flex-1 text-left text-[16px] text-ink" x-text="pais"></span><i data-lucide="chevron-down" class="h-4 w-4 text-ink-3"></i></button>
+                      <div x-show="menuPais" class="glass-strong reg-menu">
+                        <template x-for="o in ['Colombia', 'México']" :key="o"><button @click="pais = o; menuPais = false" class="ios-row press !min-h-[48px]"><span class="flex-1 text-left text-[16px] text-ink" x-text="o"></span><i x-show="pais === o" data-lucide="check" class="h-4 w-4 text-lilly"></i></button></template>
+                      </div>
+                    </div>
+                    <div class="glass ios-list mt-4 !overflow-visible relative">
+                      <div class="ios-row"><span class="w-[112px] text-[15px] text-ink-2">Nombre</span><input x-model="nombre" placeholder="Óscar" class="reg-campo" /><span class="mx-3 h-6 w-px bg-sep"></span><input x-model="apellidos" placeholder="Apellidos" class="reg-campo" /></div>
+                      <button @click="menuEsp = !menuEsp; menuPais = false" class="ios-row press"><span class="w-[112px] text-[15px] text-ink-2">Especialidad</span><span class="flex-1 text-left text-[16px] text-ink" x-text="esp"></span><i data-lucide="chevron-down" class="h-4 w-4 text-ink-3"></i></button>
+                      <div x-show="menuEsp" class="glass-strong reg-menu">
+                        <template x-for="o in especialidades" :key="o"><button @click="esp = o; menuEsp = false" class="ios-row press !min-h-[48px]"><span class="flex-1 text-left text-[16px] text-ink" x-text="o"></span><i x-show="esp === o" data-lucide="check" class="h-4 w-4 text-lilly"></i></button></template>
+                      </div>
+                      <label class="ios-row"><span class="w-[112px] text-[15px] text-ink-2">Código postal</span><input x-model="cp" inputmode="numeric" placeholder="110111" class="reg-campo" /></label>
+                      <label class="ios-row"><span class="w-[112px] text-[15px] text-ink-2">Teléfono</span><span class="mr-2 text-[16px] text-ink-2" x-text="pais === 'México' ? '+52' : '+57'"></span><input x-model="tel" inputmode="tel" placeholder="300 123 4567" class="reg-campo" /></label>
+                    </div>
+                    <button @click="ir(4)" class="ios-btn w-full mt-6 press">Continuar</button>
+                  </div>
+                </template>
+
+                <!-- Paso 4 · Consentimientos -->
+                <template x-if="paso === 4">
+                  <div class="flex-1 flex flex-col pt-2" :class="dir > 0 ? 'reg-in' : 'reg-back'">
+                    <h1 class="ios-large-title">Consentimientos</h1>
+                    <p class="mt-2 text-[15px] text-ink-2">Solo el primero es necesario para crear la cuenta.</p>
+                    <div class="glass ios-list mt-6">
+                      <div class="ios-row"><span class="flex-1 min-w-0"><span class="block text-[16px] text-ink">Privacidad y tratamiento de datos</span><span class="block text-[12px] text-ink-2">Obligatorio · <button @click="aviso = true" class="font-medium text-lillyblue">Leer aviso</button></span></span><button class="ios-switch" role="switch" :aria-checked="priv ? 'true' : 'false'" @click="priv = !priv" aria-label="Privacidad y tratamiento de datos"></button></div>
+                      <div class="ios-row"><span class="flex-1 min-w-0"><span class="block text-[16px] text-ink">Contacto por correo electrónico</span><span class="block text-[12px] text-ink-2">Novedades de contenido y webinars</span></span><button class="ios-switch" role="switch" :aria-checked="mail ? 'true' : 'false'" @click="mail = !mail" aria-label="Contacto por correo electrónico"></button></div>
+                      <div class="ios-row"><span class="flex-1 min-w-0"><span class="block text-[16px] text-ink">Llamadas telefónicas</span><span class="block text-[12px] text-ink-2">Solo para eventos y verificación</span></span><button class="ios-switch" role="switch" :aria-checked="llamadas ? 'true' : 'false'" @click="llamadas = !llamadas" aria-label="Llamadas telefónicas"></button></div>
+                    </div>
+                    <p class="mt-3 px-1 text-[13px] text-ink-3">Puedes cambiar esto en Perfil.</p>
+                    <button @click="priv && ir(5)" :disabled="!priv" class="ios-btn w-full mt-6 press disabled:opacity-40" :aria-disabled="!priv">Crear cuenta</button>
+                    <p x-show="!priv" class="mt-2 text-center text-[12px] text-ink-3">Activa la privacidad para continuar.</p>
+                  </div>
+                </template>
+
+                <!-- Paso 5 · Listo -->
+                <template x-if="paso === 5">
+                  <div class="flex-1 flex flex-col items-center justify-center text-center stagger" :class="dir > 0 ? 'reg-in' : 'reg-back'">
+                    <span class="ios-orb is-active !h-16 !w-16"></span>
+                    <h1 class="ios-large-title mt-6">Bienvenido, Dr.&nbsp;Óscar</h1>
+                    <p class="mt-2 max-w-[320px] text-[15px] text-ink-2">Tu cuenta está verificada como profesional de la salud.</p>
+                    <p class="mt-8 text-[13px] font-medium text-ink-2">Te puede interesar</p>
+                    <div class="mt-2 flex flex-wrap justify-center gap-2">
+                      <template x-for="(e, k) in enfermedades" :key="'reg-' + k"><button @click="gustos.includes(k) ? gustos.splice(gustos.indexOf(k), 1) : gustos.push(k)" class="ios-chip glass press" :aria-selected="gustos.includes(k) ? 'true' : 'false'" x-text="e.nombre"></button></template>
+                    </div>
+                    <button @click="entrar('Cuenta creada')" class="ios-btn w-full mt-10 press">Entrar a Lilly 360</button>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- Sheet «Leer aviso»: resumen del aviso de privacidad de Lilly -->
+            <div x-show="aviso" class="absolute inset-0 z-10 fade-in" @click.self="aviso = false">
+              <div class="absolute inset-0 bg-black/10" @click="aviso = false"></div>
+              <div class="glass-strong ios-sheet siri-sheet-up absolute inset-x-0 bottom-0 px-5 pb-7 @3xl:inset-x-auto @3xl:left-1/2 @3xl:-translate-x-1/2 @3xl:w-[520px] @3xl:rounded-b-[28px] @3xl:bottom-6">
+                <p class="text-[20px] font-semibold tracking-tight text-ink">Aviso de privacidad</p>
+                <div class="mt-3 space-y-3 text-[14px] leading-relaxed text-ink-2 max-h-[300px] overflow-y-auto scroll-hide pr-1">
+                  <p>Eli Lilly y Compañía trata tus datos personales como profesional de la salud para verificar tu identidad, darte acceso a Lilly 360 y adaptar el contenido a tu especialidad e intereses.</p>
+                  <p>Registramos qué contenidos abres, cuánto tiempo los ves y qué guardas. Esa información se usa de forma agregada para mejorar el servicio y nunca se vende a terceros.</p>
+                  <p>Puedes retirar los consentimientos opcionales de contacto por correo o teléfono en cualquier momento desde Perfil, sin que eso afecte tu acceso al contenido médico.</p>
+                  <p>Tienes derecho a conocer, actualizar, rectificar y suprimir tus datos, y a presentar reclamaciones ante la autoridad de protección de datos de tu país.</p>
+                </div>
+                <p class="mt-3 text-[13px] text-ink-3">Texto completo en <span class="font-medium text-lillyblue">privacynotice.lilly.com</span></p>
+                <button @click="aviso = false; priv = true" class="ios-btn w-full mt-4 press">Entendido, acepto</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============ DASHBOARD · back office de trazabilidad (vista del equipo de Lilly, no del médico) ============
+               Capa absoluta con scroll propio dentro de .proto-main, como Guardados. Todo el estado es local (`tablero()`):
+               tres juegos de datos por periodo y un factor por enfermedad; los gráficos son SVG/CSS inline, sin librerías.
+               Los datos son simulados; las métricas reales se definen con el equipo de Lilly. -->
+          <script>
+            function tablero() {
+              const azul = '#2a78d6';
+              // Ruido determinista: el tablero se ve igual en cada carga y en cada captura.
+              const ruido = (s) => { const x = Math.sin(s * 9973) * 10000; return x - Math.floor(x); };
+              const serie = (base, n, amp, semilla) => Array.from({ length: n }, (_, i) => Math.round(base * (1 + amp * (ruido(semilla + i) - 0.5) + 0.25 * amp * (i / n))));
+              return {
+                periodo: '30', enfermedad: 'todas',
+                periodos: [{ id: '7', nombre: '7 días' }, { id: '30', nombre: '30 días' }, { id: '90', nombre: '90 días' }],
+                enfs: [{ id: 'todas', nombre: 'Todas' }, { id: 'diabetes', nombre: 'Diabetes tipo 2' }, { id: 'mama', nombre: 'Cáncer de mama' }, { id: 'derma', nombre: 'Dermatitis atópica' }],
+                factor: { todas: 1, diabetes: 0.46, mama: 0.31, derma: 0.23 },
+                // Un juego por periodo: KPIs (valor, variación, 12 puntos de sparkline) y sesiones por día.
+                datos: {
+                  '7':  { activos: 6840,  sesion: '3:05', inicios: 18930,  dActivos: 2.1, dSesion: -1.4, dInicios: 3.6, sparkA: serie(950, 12, .5, 1), sparkS: serie(185, 12, .2, 7), sparkI: serie(2700, 12, .4, 13), dias: serie(2700, 7, .45, 21) },
+                  '30': { activos: 14210, sesion: '3:20', inicios: 61400,  dActivos: 4.2, dSesion: 2.8,  dInicios: 6.1, sparkA: serie(1180, 12, .4, 2), sparkS: serie(200, 12, .15, 8), sparkI: serie(2050, 12, .35, 14), dias: serie(2050, 30, .45, 22) },
+                  '90': { activos: 21530, sesion: '3:28', inicios: 172800, dActivos: 9.7, dSesion: 4.1,  dInicios: 12.4, sparkA: serie(1800, 12, .35, 3), sparkS: serie(208, 12, .12, 9), sparkI: serie(1920, 12, .3, 15), dias: serie(1920, 90, .45, 23) },
+                },
+                registrados: 36412, dRegistrados: 4.2, sparkR: serie(3000, 12, .3, 4),
+                // Top de piezas: títulos reales de app.js (contenido y formación) con su enfermedad, para que el filtro los recorte.
+                piezas: [
+                  { titulo: 'Tratamiento farmacológico de la diabetes tipo 2 según perfil del paciente', tipo: 'Algoritmo', min: 5, enf: 'diabetes', lecturas: 4820 },
+                  { titulo: 'Tratamiento del cáncer de mama HR+/HER2− temprano de alto riesgo', tipo: 'Algoritmo', min: 6, enf: 'mama', lecturas: 3910 },
+                  { titulo: 'Tirzepatida en la práctica: casos clínicos de la consulta real', tipo: 'Webinar', min: 60, enf: 'diabetes', lecturas: 3460 },
+                  { titulo: 'Metas glucémicas individualizadas y frecuencia de control', tipo: 'Tabla', min: 3, enf: 'diabetes', lecturas: 3120 },
+                  { titulo: 'Tratamiento escalonado de la dermatitis atópica moderada a severa', tipo: 'Algoritmo', min: 5, enf: 'derma', lecturas: 2780 },
+                  { titulo: 'SURPASS-2: tirzepatida frente a semaglutida en diabetes tipo 2', tipo: 'PDF', min: 18, enf: 'diabetes', lecturas: 2310 },
+                  { titulo: 'monarchE a 5 años: qué cambia en el adyuvante de alto riesgo', tipo: 'Video', min: 22, enf: 'mama', lecturas: 2050 },
+                  { titulo: 'Anti-IL-13 en dermatitis atópica: a quién y cuándo', tipo: 'Video', min: 18, enf: 'derma', lecturas: 1740 },
+                  { titulo: 'Clasificación BI-RADS y conducta según categoría', tipo: 'Tabla', min: 3, enf: 'mama', lecturas: 1620 },
+                  { titulo: 'Escalas de severidad: EASI, SCORAD e IGA', tipo: 'Tabla', min: 3, enf: 'derma', lecturas: 1380 },
+                  { titulo: 'Autoexamen de mama: paso a paso', tipo: 'Infografía', min: 2, enf: 'mama', lecturas: 1210 },
+                  { titulo: 'Rutina de cuidado de la piel en dermatitis atópica', tipo: 'Infografía', min: 2, enf: 'derma', lecturas: 980 },
+                ],
+                // Paleta categórica validada (adyacentes con ΔE CVD ≥ 8); los valores van siempre escritos al lado.
+                formatos: [
+                  { nombre: 'Algoritmo', pct: 34, color: '#2a78d6' }, { nombre: 'Tabla', pct: 18, color: '#eb6834' }, { nombre: 'Video', pct: 16, color: '#1baf7a' },
+                  { nombre: 'PDF', pct: 12, color: '#eda100' }, { nombre: 'Infografía', pct: 11, color: '#e87ba4' }, { nombre: 'Webinar', pct: 9, color: '#008300' },
+                ],
+                especialidades: [{ nombre: 'Endocrinología', n: 9840 }, { nombre: 'Medicina interna', n: 8120 }, { nombre: 'Medicina general', n: 7460 }, { nombre: 'Oncología', n: 4930 }, { nombre: 'Dermatología', n: 3710 }, { nombre: 'Ginecología', n: 2350 }],
+                ciudades: [{ nombre: 'Bogotá', n: 13260 }, { nombre: 'Medellín', n: 7890 }, { nombre: 'Cali', n: 5140 }, { nombre: 'Barranquilla', n: 3620 }, { nombre: 'Bucaramanga', n: 2480 }],
+                embudo: [{ nombre: 'Registrados', n: 36412 }, { nombre: 'Consumieron contenido', n: 21480 }, { nombre: 'Completaron microaprendizaje', n: 8930 }, { nombre: 'Asistieron a un webinar', n: 5120 }, { nombre: 'Consultaron al RAG', n: 2310 }],
+                actividad: [
+                  { quien: 'Endocrinólogo · Bogotá', que: 'abrió Tratamiento farmacológico de la diabetes tipo 2', hace: 'hace 2 min', icono: 'git-branch' },
+                  { quien: 'Oncóloga · Medellín', que: 'guardó Tratamiento del cáncer de mama HR+/HER2−', hace: 'hace 5 min', icono: 'bookmark' },
+                  { quien: 'Médica general · Cali', que: 'completó el microaprendizaje Metas glucémicas', hace: 'hace 9 min', icono: 'check-circle-2' },
+                  { quien: 'Dermatólogo · Bogotá', que: 'consultó al RAG: «criterios para escalar a sistémico»', hace: 'hace 14 min', icono: 'sparkles' },
+                  { quien: 'Internista · Barranquilla', que: 'inició sesión', hace: 'hace 16 min', icono: 'log-in' },
+                  { quien: 'Ginecóloga · Bucaramanga', que: 'descargó SURPASS-2 en PDF', hace: 'hace 21 min', icono: 'file-text' },
+                  { quien: 'Endocrinóloga · Medellín', que: 'se inscribió al webinar Tirzepatida en la práctica', hace: 'hace 27 min', icono: 'calendar' },
+                  { quien: 'Médico general · Bogotá', que: 'compartió Autoexamen de mama: paso a paso', hace: 'hace 33 min', icono: 'share' },
+                ],
+                dias: ['L', 'M', 'M', 'J', 'V', 'S', 'D'],
+                horas: Array.from({ length: 24 }, (_, h) => h),
+
+                get d() { return this.datos[this.periodo]; },
+                get f() { return this.factor[this.enfermedad]; },
+                get kpis() {
+                  const d = this.d, f = this.f;
+                  return [
+                    { nombre: 'Médicos registrados', valor: this.fmt(this.registrados * f), delta: this.dRegistrados, spark: this.sparkR },
+                    { nombre: 'Activos en el periodo', valor: this.fmt(d.activos * f), delta: d.dActivos, spark: d.sparkA },
+                    { nombre: 'Tiempo medio por sesión', valor: d.sesion, delta: d.dSesion, spark: d.sparkS, unidad: 'min' },
+                    { nombre: 'Inicios de sesión', valor: this.fmt(d.inicios * f), delta: d.dInicios, spark: d.sparkI },
+                  ];
+                },
+                get top() {
+                  const esc = { '7': 0.26, '30': 1, '90': 2.7 }[this.periodo];
+                  return this.piezas.filter(p => this.enfermedad === 'todas' || p.enf === this.enfermedad).slice(0, 8).map(p => ({ ...p, n: Math.round(p.lecturas * esc) }));
+                },
+                get maxTop() { return Math.max(...this.top.map(p => p.n)); },
+                get totalPiezas() { return this.fmt(this.top.reduce((a, p) => a + p.n, 0)); },
+                // Calor 7 × 24: picos a las 9–11 am y 8–10 pm (los momentos del médico), menos actividad el fin de semana.
+                calor(dia, hora) {
+                  const pico = (c, w) => Math.exp(-((hora - c) ** 2) / (2 * w * w));
+                  const base = 0.12 + 0.95 * pico(10, 1.4) + 0.75 * pico(21, 1.3) + 0.3 * pico(13, 1.5);
+                  const semana = dia >= 5 ? 0.45 : 1;
+                  return Math.min(1, base * semana * (0.85 + 0.3 * ruido(dia * 31 + hora)));
+                },
+                fmt(n) { return Math.round(n).toLocaleString('es-CO'); },
+                pct(n, total) { return Math.round(100 * n / total) + ' %'; },
+                barra(n, max) { return 'width:' + Math.max(2, Math.round(100 * n / max)) + '%'; },
+
+                // Gráficos como cadenas SVG (x-html): Alpine no itera con <template> dentro de un <svg>.
+                spark(arr) {
+                  const w = 120, h = 36, mn = Math.min(...arr), mx = Math.max(...arr) || 1;
+                  const pts = arr.map((v, i) => [(i / (arr.length - 1)) * w, h - 4 - ((v - mn) / (mx - mn || 1)) * (h - 8)]);
+                  const linea = pts.map(p => p.map(v => v.toFixed(1)).join(',')).join(' ');
+                  const ultimo = pts[pts.length - 1];
+                  return `<svg viewBox="0 0 ${w} ${h}" class="w-full h-9" preserveAspectRatio="none" aria-hidden="true">
+                    <polygon points="0,${h} ${linea} ${w},${h}" fill="${azul}" opacity=".12"/>
+                    <polyline points="${linea}" fill="none" stroke="${azul}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+                    <circle cx="${ultimo[0].toFixed(1)}" cy="${ultimo[1].toFixed(1)}" r="3.5" fill="${azul}" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/>
+                  </svg>`;
+                },
+                linea() {
+                  const arr = this.d.dias.map(v => Math.round(v * this.f)), w = 320, h = 120, ml = 34, mr = 12, mb = 18;
+                  const mx = Math.max(...arr) * 1.1, n = arr.length;
+                  const x = i => ml + (i / (n - 1)) * (w - ml - mr), y = v => 6 + (1 - v / mx) * (h - mb - 6);
+                  const pts = arr.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+                  const grid = [0, .5, 1].map(t => `<line x1="${ml}" x2="${w - mr}" y1="${y(mx * t).toFixed(1)}" y2="${y(mx * t).toFixed(1)}" stroke="rgba(60,60,67,.12)"/>
+                    <text x="${ml - 6}" y="${(y(mx * t) + 3.5).toFixed(1)}" text-anchor="end" font-size="9" fill="#6E6E73">${t === 0 ? '0' : this.fmtCorto(mx * t)}</text>`).join('');
+                  const paso = n > 30 ? 15 : n > 7 ? 5 : 1;
+                  const ejes = arr.map((_, i) => (i % paso === 0 || i === n - 1) ? `<text x="${x(i).toFixed(1)}" y="${h - 4}" text-anchor="middle" font-size="9" fill="#6E6E73">${n === 7 ? this.dias[i] : 'd' + (i + 1)}</text>` : '').join('');
+                  // Zonas de hover más grandes que la marca: cada punto lleva su <title> como tooltip nativo.
+                  const hits = arr.map((v, i) => `<rect x="${(x(i) - (w - ml) / n / 2).toFixed(1)}" y="0" width="${((w - ml) / n).toFixed(1)}" height="${h - mb}" fill="transparent"><title>${n === 7 ? 'Día ' + this.dias[i] : 'Día ' + (i + 1)} · ${this.fmt(v)} sesiones</title></rect>`).join('');
+                  return `<svg viewBox="0 0 ${w} ${h}" class="w-full h-auto" aria-label="Sesiones por día">${grid}
+                    <polygon points="${x(0).toFixed(1)},${y(0).toFixed(1)} ${pts} ${x(n - 1).toFixed(1)},${y(0).toFixed(1)}" fill="${azul}" opacity=".10"/>
+                    <polyline points="${pts}" fill="none" stroke="${azul}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+                    ${n <= 7 ? arr.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="4" fill="${azul}" stroke="#fff" stroke-width="2"/>`).join('') : ''}
+                    ${ejes}${hits}</svg>`;
+                },
+                donut() {
+                  const r = 44, c = 2 * Math.PI * r, gap = 2; let off = 0;
+                  const arcos = this.formatos.map(s => {
+                    const len = (s.pct / 100) * c;
+                    const seg = `<circle cx="60" cy="60" r="${r}" fill="none" stroke="${s.color}" stroke-width="14" stroke-dasharray="${(len - gap).toFixed(2)} ${(c - len + gap).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 60 60)"><title>${s.nombre} · ${s.pct} %</title></circle>`;
+                    off += len; return seg;
+                  }).join('');
+                  return `<svg viewBox="0 0 120 120" class="w-[132px] h-[132px] shrink-0" aria-label="Piezas vistas por formato">${arcos}
+                    <text x="60" y="57" text-anchor="middle" font-size="18" font-weight="700" fill="#1D1D1F">${this.totalPiezas}</text>
+                    <text x="60" y="72" text-anchor="middle" font-size="9" fill="#6E6E73">piezas vistas</text></svg>`;
+                },
+                fmtCorto(n) { return n >= 1000 ? (n / 1000).toFixed(1).replace('.0', '').replace('.', ',') + ' k' : Math.round(n); },
+              };
+            }
+          </script>
+
+          <div x-show="pantalla === 'dashboard'" x-data="tablero()" class="@container screen-enter absolute inset-0 overflow-y-auto scroll-hide px-5 pt-2 pb-16 @3xl:px-8 @3xl:pt-6 @6xl:px-10">
+
+            <!-- Cabecera con los dos filtros en una sola fila: periodo y enfermedad cambian todos los números -->
+            <div class="flex flex-col gap-4 @6xl:flex-row @6xl:items-end @6xl:justify-between">
+              <div>
+                <p class="text-[13px] font-medium text-ink-2">Back office</p>
+                <h1 class="ios-large-title mt-0.5 @6xl:whitespace-nowrap">Lilly 360 · Trazabilidad</h1>
+              </div>
+              <div class="flex flex-col gap-2 @3xl:flex-row @3xl:items-center @3xl:gap-3">
+                <div class="flex gap-2 overflow-x-auto scroll-hide -mx-5 px-5 @3xl:mx-0 @3xl:px-0" role="group" aria-label="Periodo">
+                  <template x-for="p in periodos" :key="p.id">
+                    <button @click="periodo = p.id" class="ios-chip glass press shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30" :aria-selected="periodo === p.id ? 'true' : 'false'" x-text="p.nombre"></button>
+                  </template>
+                </div>
+                <span class="hidden @3xl:block h-6 w-px bg-sep"></span>
+                <div class="flex gap-2 overflow-x-auto scroll-hide -mx-5 px-5 @3xl:mx-0 @3xl:px-0" role="group" aria-label="Enfermedad">
+                  <template x-for="e in enfs" :key="e.id">
+                    <button @click="enfermedad = e.id" class="ios-chip glass press shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30" :aria-selected="enfermedad === e.id ? 'true' : 'false'" x-text="e.nombre"></button>
+                  </template>
+                </div>
+              </div>
+            </div>
+
+            <!-- Grilla: una columna en iPhone, dos en iPad, doce en escritorio -->
+            <div class="mt-6 grid grid-cols-1 @3xl:grid-cols-2 @6xl:grid-cols-12 gap-4 stagger">
+
+              <!-- KPIs -->
+              <template x-for="k in kpis" :key="k.nombre">
+                <div class="glass rounded-3xl p-5 @6xl:col-span-3">
+                  <p class="text-[13px] font-medium text-ink-2" x-text="k.nombre"></p>
+                  <div class="mt-1 flex items-baseline gap-2">
+                    <span class="text-[30px] font-bold tracking-[-0.02em] text-ink leading-none" x-text="k.valor"></span>
+                    <span x-show="k.unidad" class="text-[13px] text-ink-2" x-text="k.unidad"></span>
+                    <span class="ml-auto text-[13px] font-medium" :class="k.delta >= 0 ? 'text-[#008300]' : 'text-ink-2'" x-text="(k.delta >= 0 ? '▲ +' : '▼ ') + String(k.delta).replace('.', ',') + ' %'"></span>
+                  </div>
+                  <div class="mt-3" x-html="spark(k.spark)"></div>
+                </div>
+              </template>
+
+              <!-- Qué leyeron: top de piezas -->
+              <section class="glass rounded-3xl p-5 @3xl:col-span-2 @6xl:col-span-8">
+                <div class="flex items-baseline justify-between">
+                  <h2 class="text-[17px] font-semibold text-ink">Qué leyeron</h2>
+                  <span class="text-[13px] text-ink-2">Top 8 · aperturas</span>
+                </div>
+                <ol class="mt-4 space-y-3">
+                  <template x-for="p in top" :key="p.titulo">
+                    <li :title="p.titulo + ' · ' + fmt(p.n) + ' aperturas'">
+                      <div class="flex items-baseline gap-3 text-[15px]">
+                        <span class="flex-1 min-w-0 truncate text-ink" x-text="p.titulo"></span>
+                        <span class="shrink-0 text-[13px] text-ink-2" x-text="p.tipo + ' · ' + p.min + ' min'"></span>
+                        <span class="shrink-0 w-14 text-right font-semibold tabular-nums text-ink" x-text="fmt(p.n)"></span>
+                      </div>
+                      <div class="mt-1.5 h-2 rounded-full bg-black/[.05]"><div class="h-2 rounded-full bg-[#2a78d6] transition-[width] duration-500 ease-[cubic-bezier(.2,.8,.2,1)]" :style="barra(p.n, maxTop)"></div></div>
+                    </li>
+                  </template>
+                </ol>
+              </section>
+
+              <!-- Por formato: donut con leyenda y valores al lado (las etiquetas son el relevo del color) -->
+              <section class="glass rounded-3xl p-5 @6xl:col-span-4">
+                <h2 class="text-[17px] font-semibold text-ink">Por formato</h2>
+                <div class="mt-4 flex items-center gap-5">
+                  <div x-html="donut()"></div>
+                  <ul class="flex-1 min-w-0 space-y-2">
+                    <template x-for="s in formatos" :key="s.nombre">
+                      <li class="flex items-center gap-2 text-[14px]">
+                        <span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="'background:' + s.color"></span>
+                        <span class="flex-1 text-ink" x-text="s.nombre"></span>
+                        <span class="tabular-nums text-ink-2" x-text="s.pct + ' %'"></span>
+                      </li>
+                    </template>
+                  </ul>
+                </div>
+              </section>
+
+              <!-- Cuándo se conectan: mapa de calor 7 × 24 -->
+              <section class="glass rounded-3xl p-5 @6xl:col-span-7">
+                <div class="flex items-baseline justify-between">
+                  <h2 class="text-[17px] font-semibold text-ink">Cuándo se conectan</h2>
+                  <span class="text-[13px] text-ink-2">Sesiones por día y hora</span>
+                </div>
+                <div class="mt-4 flex gap-2">
+                  <div class="grid grid-rows-7 gap-[3px] text-[11px] text-ink-2 leading-none">
+                    <template x-for="(dia, i) in dias" :key="'d' + i"><span class="flex items-center h-[14px] @3xl:h-[18px]" x-text="dia"></span></template>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="grid grid-cols-[repeat(24,minmax(0,1fr))] gap-[3px]">
+                      <template x-for="(dia, i) in dias" :key="'f' + i">
+                        <template x-for="h in horas" :key="'c' + i + '-' + h">
+                          <div class="h-[14px] @3xl:h-[18px] rounded-[3px]" :style="'background: rgba(42,120,214,' + (0.06 + 0.94 * calor(i, h)).toFixed(2) + ')'" :title="dia + ' · ' + h + ':00 · ' + fmt(320 * calor(i, h) * f) + ' sesiones'"></div>
+                        </template>
+                      </template>
+                    </div>
+                    <div class="mt-1.5 grid grid-cols-4 text-[11px] text-ink-2"><span>0 h</span><span>6 h</span><span>12 h</span><span>18 h</span></div>
+                  </div>
+                </div>
+                <p class="mt-3 text-[13px] text-ink-2">Picos a las 9–11 am (consulta) y 8–10 pm (antes de dormir).</p>
+              </section>
+
+              <!-- Sesiones por día -->
+              <section class="glass rounded-3xl p-5 @6xl:col-span-5">
+                <div class="flex items-baseline justify-between">
+                  <h2 class="text-[17px] font-semibold text-ink">Sesiones por día</h2>
+                  <span class="text-[13px] text-ink-2" x-text="'Últimos ' + periodo + ' días'"></span>
+                </div>
+                <div class="mt-4" x-html="linea()"></div>
+              </section>
+
+              <!-- Quiénes: especialidad -->
+              <section class="glass rounded-3xl p-5 @6xl:col-span-4">
+                <h2 class="text-[17px] font-semibold text-ink">Por especialidad</h2>
+                <ul class="mt-4 space-y-3">
+                  <template x-for="e in especialidades" :key="e.nombre">
+                    <li :title="e.nombre + ' · ' + fmt(e.n * f)">
+                      <div class="flex items-baseline justify-between text-[14px]"><span class="text-ink" x-text="e.nombre"></span><span class="tabular-nums text-ink-2" x-text="fmt(e.n * f)"></span></div>
+                      <div class="mt-1.5 h-2 rounded-full bg-black/[.05]"><div class="h-2 rounded-full bg-[#2a78d6]" :style="barra(e.n, especialidades[0].n)"></div></div>
+                    </li>
+                  </template>
+                </ul>
+              </section>
+
+              <!-- Quiénes: ciudad -->
+              <section class="glass rounded-3xl p-5 @6xl:col-span-4">
+                <h2 class="text-[17px] font-semibold text-ink">Por ciudad</h2>
+                <ul class="mt-4 space-y-3">
+                  <template x-for="c in ciudades" :key="c.nombre">
+                    <li :title="c.nombre + ' · ' + fmt(c.n * f)">
+                      <div class="flex items-baseline justify-between text-[14px]"><span class="text-ink" x-text="c.nombre"></span><span class="tabular-nums text-ink-2" x-text="fmt(c.n * f)"></span></div>
+                      <div class="mt-1.5 h-2 rounded-full bg-black/[.05]"><div class="h-2 rounded-full bg-[#2a78d6]" :style="barra(c.n, ciudades[0].n)"></div></div>
+                    </li>
+                  </template>
+                </ul>
+              </section>
+
+              <!-- Embudo -->
+              <section class="glass rounded-3xl p-5 @6xl:col-span-4">
+                <h2 class="text-[17px] font-semibold text-ink">Embudo</h2>
+                <ol class="mt-4 space-y-3">
+                  <template x-for="(e, i) in embudo" :key="e.nombre">
+                    <li :title="e.nombre + ' · ' + fmt(e.n * f)">
+                      <div class="flex items-baseline justify-between text-[14px]">
+                        <span class="text-ink" x-text="e.nombre"></span>
+                        <span class="tabular-nums"><span class="font-semibold text-ink" x-text="pct(e.n, embudo[0].n)"></span> <span class="text-ink-2" x-text="'· ' + fmt(e.n * f)"></span></span>
+                      </div>
+                      <div class="mt-1.5 h-2 rounded-full bg-black/[.05]"><div class="h-2 rounded-full" :class="i === 0 ? 'bg-[#2a78d6]' : 'bg-[#2a78d6]/70'" :style="barra(e.n, embudo[0].n)"></div></div>
+                    </li>
+                  </template>
+                </ol>
+              </section>
+
+              <!-- Actividad reciente -->
+              <section class="glass rounded-3xl @3xl:col-span-2 @6xl:col-span-12">
+                <div class="px-5 pt-5 flex items-baseline justify-between">
+                  <h2 class="text-[17px] font-semibold text-ink">Actividad reciente</h2>
+                  <span class="text-[13px] text-ink-2">Anonimizada</span>
+                </div>
+                <ul class="mt-2 @6xl:grid @6xl:grid-cols-2">
+                  <template x-for="a in actividad" :key="a.quien + a.hace">
+                    <li class="ios-row py-3 border-t border-sep">
+                      <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/80 border border-white/90 shadow-sm text-ink-2"><i :data-lucide="a.icono" class="h-4 w-4"></i></span>
+                      <span class="flex-1 min-w-0">
+                        <span class="block text-[14px] text-ink truncate"><span class="font-semibold" x-text="a.quien"></span> · <span x-text="a.que"></span></span>
+                        <span class="block text-[12px] text-ink-2" x-text="a.hace"></span>
+                      </span>
+                    </li>
+                  </template>
+                </ul>
+              </section>
+            </div>
+
+            <!-- Pie -->
+            <div class="mt-6 flex flex-col gap-3 @3xl:flex-row @3xl:items-center @3xl:justify-between">
+              <p class="text-[13px] text-ink-2">Datos simulados. Las métricas reales se definen con el equipo de Lilly.</p>
+              <button class="glass ios-btn-glass press !h-11 text-[15px] self-start @3xl:self-auto"><i data-lucide="download" class="h-4 w-4"></i>Exportar CSV</button>
+            </div>
+          </div>
+
         <!-- Degradado para que el contenido se apague bajo la tab bar flotante (solo iPhone) -->
-        <div x-show="dispositivo === 'iphone'" class="tab-fade"></div>
+        <div x-show="dispositivo === 'iphone' && !sinCascaron.includes(pantalla) && !modal && !rag.abierto" class="tab-fade"></div>
 
         <!-- iPad y escritorio no tienen isla: el estado «consultando» cae como pastilla desde arriba del área de contenido -->
         <div x-show="dispositivo !== 'iphone' && rag.estado === 'pensando'" class="absolute top-4 left-1/2 -translate-x-1/2 z-[36]">
@@ -1199,7 +1719,7 @@
                     <span class="siri-orb-3d"></span>
                     <button @click="ragDictar()" class="glass-icon !h-12 !w-12 press" aria-label="Preguntar por voz"><i data-lucide="mic" class="h-5 w-5 text-ink-2"></i></button>
                   </div>
-                  <p class="mt-7 text-[17px] text-ink-2">Hola Óscar</p>
+                  <p class="mt-7 text-[17px] text-ink-2">Hola, Dr.&nbsp;Óscar</p>
                   <p class="mt-1 max-w-[420px] text-[28px] font-semibold leading-tight tracking-tight text-ink" x-text="ragAmbito ? '¿Qué necesitas saber sobre ' + ragAmbito.nombre.toLowerCase() + '?' : '¿Qué necesitas saber hoy?'"></p>
                   <div class="mt-6 flex flex-wrap justify-center gap-2">
                     <template x-for="s in ragSugerencias" :key="'c' + s"><button @click="ragEnviar(s)" class="ios-chip glass !h-9 !text-[13px] press" x-text="s"></button></template>

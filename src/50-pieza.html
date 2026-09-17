@@ -4,14 +4,15 @@
                Al responder (M6) las opciones se bloquean, la correcta lleva check y la incorrecta ×; la hoja baja sola a los 2 s y el video sigue.
                `?pregunta=1` abre la hoja al cargar (solo para capturas). Responsivo con una sola grilla de 4 piezas (reproductor, título, pregunta, resumen). -->
           <div x-show="pantalla === 'pieza'" class="relative pb-32 @3xl:pb-16" x-data="{
-            reproduciendo: false, avance: 35, hoja: false, _t: null,
+            reproduciendo: false, avance: 35, hoja: false, ficha: false, _t: null,
             init() {
+              this.$watch('ficha', v => { if ('modal' in this) this.modal = v; });
               this.$watch('pieza', () => { clearTimeout(this._t); this.reproduciendo = false; this.hoja = false; this.avance = pieza.progreso ?? 0; });
               // La hoja es modal: mientras está abierta el cascarón oculta la tab bar (estado global `modal`, defensivo por si aún no existe).
               this.$watch('hoja', v => { if ('modal' in this) this.modal = v; });
-              this.$watch('pantalla', p => { if (p !== 'pieza' && this.hoja) { clearTimeout(this._t); this.hoja = false; this.reproduciendo = false; } });
+              this.$watch('pantalla', p => { if (p !== 'pieza') { this.ficha = false; if (this.hoja) { clearTimeout(this._t); this.hoja = false; this.reproduciendo = false; } } });
               // Parámetros de captura (van después de los watchers para que `modal` también se active): ?pregunta=1 abre la hoja, ?r=<i> responde.
-              const q = new URLSearchParams(location.search); if (q.get('pregunta') === '1') { this.avance = 60; this.hoja = true; } if (q.get('r') !== null) this.$nextTick(() => { respuesta = +q.get('r'); });
+              const q = new URLSearchParams(location.search); if (q.get('pregunta') === '1') { this.avance = 60; this.hoja = true; } if (q.get('r') !== null) this.$nextTick(() => { respuesta = +q.get('r'); }); if (q.get('ficha') === '1' && q.get('p') === 'pieza') this.ficha = true;
             },
             minutos(p) { return parseInt(p.duracion) || 15; },
             tiempos(p) {
@@ -70,6 +71,7 @@
               <div class="pt-5 @3xl:pt-6 @3xl:col-start-1 @3xl:row-start-2 max-w-[640px]">
                 <h1 class="text-[22px] @3xl:text-[26px] @6xl:text-[28px] font-semibold leading-tight tracking-tight text-ink" x-text="pieza.titulo"></h1>
                 <p class="mt-2 text-[15px] text-ink-2" x-text="[pieza.autor, pieza.autor && pieza.autor.includes(pieza.fecha) ? null : pieza.fecha].filter(Boolean).join(' · ')"></p>
+                <p class="mt-1 text-[13px] text-ink-2">Canal <span x-text="enf.nombre"></span> · <span class="font-medium text-lilly" x-text="enf.producto"></span></p>
               </div>
 
               <!-- Pregunta: tarjeta inline (sin asa). En iPhone es el registro de lo respondido; en @3xl+ es donde se responde y se ilumina al llegar al minuto 5 -->
@@ -102,7 +104,15 @@
               <div class="mt-7 @3xl:mt-6 @3xl:col-start-1 @3xl:row-start-3 max-w-[640px]">
                 <h2 class="text-[17px] font-semibold text-ink">Resumen</h2>
                 <p class="mt-1.5 text-[15px] @6xl:text-[16px] leading-[1.5] text-ink/90" x-text="pieza.resumen"></p>
-                <div class="mt-7 @3xl:flex @3xl:items-center @3xl:gap-4">
+                <!-- Contenido comercial, separado del médico: abre la ficha de prescripción del producto del canal -->
+                <div class="ios-list glass mt-7">
+                  <button @click="ficha = true" class="ios-row press">
+                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-lilly-soft text-lilly"><i data-lucide="file-badge" class="h-5 w-5"></i></span>
+                    <span class="flex-1 min-w-0"><span class="block text-[15px] font-medium text-ink" x-text="'Información para prescribir de ' + enf.producto"></span><span class="block text-[13px] text-ink-2">Contenido comercial · Aprobado por INVIMA</span></span>
+                    <i data-lucide="chevron-right" class="h-5 w-5 shrink-0 text-ink-3"></i>
+                  </button>
+                </div>
+                <div class="mt-5 @3xl:flex @3xl:items-center @3xl:gap-4">
                   <button class="ios-btn w-full @3xl:w-auto transition-opacity duration-300" :class="respuesta === null ? 'opacity-40 cursor-not-allowed' : ''" :disabled="respuesta === null" :aria-disabled="respuesta === null ? 'true' : 'false'"><i data-lucide="award" class="h-5 w-5"></i>Obtener certificado</button>
                   <p class="mt-2.5 @3xl:mt-0 text-center @3xl:text-left text-[13px] text-ink-2 transition-opacity duration-300" x-text="respuesta === null ? 'Responde la pregunta para obtener el certificado' : '1 de 1 preguntas · lista para certificar'"></p>
                 </div>
@@ -137,6 +147,36 @@
                      class="mt-3 rounded-2xl bg-ink/[.05] px-4 py-3">
                   <p class="text-[15px] leading-[1.5] text-ink" x-text="respuesta === null ? '' : explicacion(pieza, respuesta)"></p>
                   <p class="mt-1.5 text-[12px] text-ink-2">El video continúa en un momento…</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ficha de prescripción (contenido comercial): hoja de vidrio en iPhone, diálogo centrado en tablet y escritorio. Comparte el estado global `modal` para ocultar la tab bar. -->
+            <div x-show="ficha" x-cloak class="absolute inset-0 z-40 flex flex-col justify-end @3xl:justify-start @3xl:items-center @3xl:pt-16"
+                 x-transition:enter="transition-opacity duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                 x-transition:leave="transition-opacity duration-300 delay-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+              <div class="absolute inset-0 bg-ink/30 backdrop-blur-[4px]" aria-hidden="true" @click="ficha = false"></div>
+              <div x-show="ficha" role="dialog" aria-modal="true" :aria-label="'Información para prescribir de ' + enf.producto" @keydown.escape.window="ficha = false"
+                   x-transition:enter="transition-transform duration-[420ms] ease-[cubic-bezier(.32,.72,0,1)]" x-transition:enter-start="translate-y-full @3xl:translate-y-4" x-transition:enter-end="translate-y-0"
+                   x-transition:leave="transition-transform duration-300 ease-[cubic-bezier(.32,.72,0,1)]" x-transition:leave-start="translate-y-0" x-transition:leave-end="translate-y-full @3xl:translate-y-4"
+                   class="glass-strong ios-sheet sticky bottom-0 px-5 pb-8 shadow-[0_-12px_40px_rgba(0,0,0,.12)] @3xl:static @3xl:before:hidden @3xl:w-[480px] @3xl:!rounded-[28px] @3xl:p-6 @3xl:shadow-[0_24px_64px_rgba(0,0,0,.18)]">
+                <p class="text-[12px] font-semibold uppercase tracking-wide text-lilly">Contenido comercial</p>
+                <h2 class="mt-1 text-[22px] font-semibold tracking-tight text-ink" x-text="enf.producto"></h2>
+                <p class="mt-0.5 text-[15px] text-ink-2"><span x-text="enf.principio"></span> · Lilly · <span x-text="enf.nombre"></span></p>
+                <div class="ios-list glass mt-4">
+                  <div class="ios-row">
+                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-lilly-soft text-lilly"><i data-lucide="badge-check" class="h-5 w-5"></i></span>
+                    <span class="flex-1 min-w-0"><span class="block text-[15px] font-medium text-ink">Aprobado por INVIMA</span><span class="block text-[13px] text-ink-2">Registro sanitario vigente en Colombia</span></span>
+                  </div>
+                  <div class="ios-row">
+                    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-ink/[.06] text-ink"><i data-lucide="file-text" class="h-5 w-5"></i></span>
+                    <span class="flex-1 min-w-0"><span class="block text-[15px] font-medium text-ink">Ficha técnica</span><span class="block text-[13px] text-ink-2">PDF · 24 páginas · Actualizada ago 2026</span></span>
+                  </div>
+                </div>
+                <p class="mt-3 px-1 text-[12px] text-ink-3">Material dirigido exclusivamente a profesionales de la salud.</p>
+                <div class="mt-4 flex gap-3">
+                  <button class="ios-btn ios-btn-accent flex-1 press" @click="ficha = false"><i data-lucide="download" class="h-5 w-5"></i>Descargar</button>
+                  <button class="ios-btn-glass glass press" @click="ficha = false">Cerrar</button>
                 </div>
               </div>
             </div>
