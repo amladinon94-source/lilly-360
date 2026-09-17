@@ -1,0 +1,26 @@
+          <!-- ============ GUARDADOS · lo que Óscar marcó con el bookmark (estado `guardados[]` de app.js) ============
+               Este partial va DESPUÉS del </div> que cierra el contenedor scroll (vive en 50-pieza.html), así que es una capa absoluta con su propio scroll dentro de .proto-main. -->
+          <div x-show="pantalla === 'guardados'" class="@container screen-enter absolute inset-0 overflow-y-auto scroll-hide px-5 pt-0 pb-36 @3xl:px-10 @3xl:pt-6 @3xl:pb-16 @3xl:mx-auto @3xl:w-full @3xl:max-w-[880px]">
+            <div class="pt-2">
+              <h1 class="ios-large-title">Guardados</h1>
+              <p class="mt-1.5 text-[15px] text-ink-2" x-text="guardados.length ? guardados.length + (guardados.length === 1 ? ' pieza guardada' : ' piezas guardadas') : 'Tu biblioteca personal'"></p>
+            </div>
+            <div x-show="guardados.length" class="glass ios-list mt-6 stagger">
+              <template x-for="g in guardados" :key="'g-' + g.titulo">
+                <button @click="abrirGuardado(g)" class="ios-row py-3.5 press active:bg-black/[.04] transition-colors">
+                  <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/80 border border-white/90 shadow-sm text-ink-2"><i :data-lucide="g.formato ? iconoFormato(g.formato) : iconoTipo(g.tipo)" class="h-[18px] w-[18px]"></i></span>
+                  <span class="flex-1 min-w-0">
+                    <span class="text-[17px] font-semibold leading-[1.3] text-ink line-clamp-2" x-text="g.titulo"></span>
+                    <span class="mt-1 block text-[13px] text-ink-2" x-text="enfermedades[g.enfermedad].corto + ' · ' + (g.formato ? nombreFormato(g.formato) : g.tipo) + (g.minutos ? ' · ' + g.minutos + ' min' : '')"></span>
+                  </span>
+                  <i data-lucide="chevron-right" class="h-5 w-5 shrink-0 text-ink-3"></i>
+                </button>
+              </template>
+            </div>
+            <div x-show="!guardados.length" class="glass mt-6 rounded-3xl px-6 py-10 text-center">
+              <span class="glass-icon !h-14 !w-14 mx-auto"><i data-lucide="bookmark" class="h-6 w-6 text-ink-2"></i></span>
+              <p class="mt-4 text-[17px] font-semibold text-ink">Nada guardado todavía</p>
+              <p class="mt-1 text-[15px] leading-relaxed text-ink-2">Guarda algoritmos y tablas para tenerlos aquí.</p>
+            </div>
+          </div>
+

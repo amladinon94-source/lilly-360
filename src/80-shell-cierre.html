@@ -1,0 +1,281 @@
+        <!-- Degradado para que el contenido se apague bajo la tab bar flotante (solo iPhone) -->
+        <div x-show="dispositivo === 'iphone'" class="tab-fade"></div>
+
+        <!-- iPad y escritorio no tienen isla: el estado «consultando» cae como pastilla desde arriba del área de contenido -->
+        <div x-show="dispositivo !== 'iphone' && rag.estado === 'pensando'" class="absolute top-4 left-1/2 -translate-x-1/2 z-[36]">
+          <span class="glass-strong siri-card inline-flex items-center gap-2.5 h-11 rounded-full pl-3 pr-5 text-[14px] font-semibold text-ink whitespace-nowrap"><span class="ios-orb is-active !h-5 !w-5"></span>Consultando estudios…</span>
+        </div>
+
+        <!-- Fondo atenuado en large: tocarlo devuelve la hoja a medium -->
+        <div x-show="dispositivo === 'iphone' && pantalla === 'tema'" class="absolute inset-0 z-[27]" @click="hojaIr('medium')"></div>
+
+        <!-- Hoja inferior tipo Apple Maps (solo iPhone). En small: asa + buscador; medium: categorías y recientes; large: la Búsqueda rápida (Tema). -->
+        <section x-show="dispositivo === 'iphone'" class="glass-strong ios-hoja"
+                 :class="{ ['is-' + hoja.detent]: true, 'is-dragging': hoja.arrastrando, 'is-dimmed': rag.abierto, 'is-oculta': !(pantalla === 'inicio' || pantalla === 'tema') }"
+                 :style="`height:${Math.max(0, hoja.y - hojaGap)}px; bottom:${hojaGap}px`"
+                 :aria-expanded="hoja.detent !== 'small' ? 'true' : 'false'"
+                 @pointerdown="hojaInicioArrastre($event)" @pointermove="hojaMover($event)" @pointerup="hojaSoltar($event)" @pointercancel="hojaSoltar($event)"
+                 @click.capture="if (hoja.movio) { $event.stopPropagation(); $event.preventDefault(); }">
+          <div class="hoja-asa-zona" role="button" tabindex="0" aria-label="Arrastrar para ver más" @click="hojaIr({ small: 'medium', medium: 'large', large: 'medium' }[hoja.detent])"><span class="hoja-asa"></span></div>
+          <div class="hoja-head">
+            <div class="flex items-center gap-3">
+              <label class="ios-search glass flex-1 min-w-0" @click="hojaBuscar()">
+                <i data-lucide="search" class="h-5 w-5 shrink-0"></i>
+                <template x-if="hoja.detent !== 'large'"><span class="truncate">Buscar en Lilly 360</span></template>
+                <template x-if="hoja.detent === 'large'">
+                  <span class="flex items-center gap-2 flex-1 min-w-0">
+                    <span x-show="hoja.enfermedad" class="ios-chip !h-8 !pl-3 !pr-1.5 !text-[13px] shrink-0 gap-1" aria-selected="true"><span x-text="hoja.enfermedad ? enfermedades[hoja.enfermedad].corto : ''"></span><button @click.stop="hojaQuitarEnfermedad()" class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/25" aria-label="Quitar enfermedad"><i data-lucide="x" class="h-3 w-3"></i></button></span>
+                    <input x-ref="hojaInput" x-model="hoja.texto" @keydown.enter="hojaEnter()" class="flex-1 min-w-0 bg-transparent text-[16px] text-ink outline-none placeholder:text-ink-3" :placeholder="hoja.enfermedad ? 'Buscar en ' + enf.nombre.toLowerCase() : 'Buscar en Lilly 360'" />
+                  </span>
+                </template>
+              </label>
+              <button x-show="hoja.detent === 'large'" @click="hojaCancelar()" class="shrink-0 text-[17px] font-medium text-lilly press">Cancelar</button>
+            </div>
+            <!-- B5: el segmented vive en la cabecera fija; la lista pasa por debajo con scroll edge effect -->
+            <div x-show="hoja.detent === 'large' && hoja.enfermedad && !hoja.texto.trim()" class="mt-3">
+              <div class="glass ios-segmented" role="tablist">
+                    <span aria-hidden="true" class="absolute top-[3px] bottom-[3px] left-[3px] rounded-full bg-white shadow-pill transition-transform duration-300 ease-[cubic-bezier(.32,.72,0,1)]"
+                          :style="'width: calc((100% - 6px) / ' + tabs.length + '); transform: translateX(' + (tabs.findIndex(t => t.id === tab) * 100) + '%)'"></span>
+                    <template x-for="t in tabs" :key="t.id">
+                      <button role="tab" @click="tab = t.id" class="ios-segment aria-selected:!bg-transparent aria-selected:!shadow-none" :aria-selected="tab === t.id ? 'true' : 'false'" :tabindex="tab === t.id ? 0 : -1"
+                              @keydown.arrow-right.prevent="tab = tabs[(tabs.findIndex(x => x.id === tab) + 1) % tabs.length].id" @keydown.arrow-left.prevent="tab = tabs[(tabs.findIndex(x => x.id === tab) + tabs.length - 1) % tabs.length].id" x-text="t.nombre"></button>
+                    </template>
+                  </div>
+            </div>
+          </div>
+
+          <div class="hoja-body" x-ref="hojaScroll">
+            <!-- medium: categorías (las tres enfermedades) y recientes -->
+            <template x-if="hoja.detent !== 'large'">
+              <div class="px-4 pb-6 stagger">
+                <button @click="hojaLibre()" class="flex items-center gap-0.5 text-[20px] font-semibold tracking-tight text-ink press">Búsqueda rápida<i data-lucide="chevron-right" class="h-5 w-5 text-ink-3"></i></button>
+                <div class="mt-3 grid grid-cols-3 gap-3">
+                  <template x-for="(e, k) in enfermedades" :key="'hoja-' + k">
+                    <button @click="abrirTema(k)" class="flex flex-col items-center gap-2 press">
+                      <span class="glass-icon !h-[72px] !w-[72px] !bg-white"><i :data-lucide="e.icono" class="h-7 w-7"></i></span>
+                      <span class="text-[13px] font-medium text-ink leading-tight text-center" x-text="e.corto"></span>
+                    </button>
+                  </template>
+                </div>
+                <button @click="hojaLibre()" class="mt-7 flex items-center gap-0.5 text-[20px] font-semibold tracking-tight text-ink press">Recientes<i data-lucide="chevron-right" class="h-5 w-5 text-ink-3"></i></button>
+                <div class="glass ios-list mt-3 !bg-white/70">
+                  <template x-for="r in recientes" :key="r.titulo">
+                    <button @click="abrirReciente(r)" class="ios-row press">
+                      <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white border border-white/90 shadow-sm text-ink-2"><i :data-lucide="iconoTipo(r.tipo)" class="h-[18px] w-[18px]"></i></span>
+                      <span class="flex-1 min-w-0"><span class="block text-[16px] font-medium text-ink truncate" x-text="r.titulo"></span><span class="block mt-0.5 text-[13px] text-ink-2" x-text="r.tipo + ' · ' + enfermedades[r.enfermedad].corto"></span></span>
+                      <i data-lucide="chevron-right" class="h-5 w-5 shrink-0 text-ink-3"></i>
+                    </button>
+                  </template>
+                </div>
+              </div>
+            </template>
+
+            <!-- large: dos estados. Sin enfermedad elegida: chips para acotar y recientes. Con enfermedad: segmented + lista.
+                 Con texto (en cualquiera de los dos): resultados por título, acotados a la enfermedad si hay una, y al final
+                 la pregunta escrita como fila «Preguntar a Lilly 360» (un solo campo de texto por pantalla). -->
+            <template x-if="hoja.detent === 'large'">
+              <div class="px-4 pb-32">
+                <div x-show="!hoja.enfermedad" class="flex gap-2 overflow-x-auto scroll-hide -mx-4 px-4 pb-1">
+                  <template x-for="(e, k) in enfermedades" :key="'acotar-' + k">
+                    <button @click="hojaElegir(k)" class="ios-chip glass press shrink-0" x-text="e.nombre"></button>
+                  </template>
+                </div>
+
+                <!-- Sin texto y sin enfermedad: recientes -->
+                <div x-show="!hoja.texto.trim() && !hoja.enfermedad" class="mt-5">
+                  <p class="px-1 text-[20px] font-semibold tracking-tight text-ink">Recientes</p>
+                  <div class="glass ios-list mt-3 !bg-white/70">
+                    <template x-for="r in recientes" :key="'l-' + r.titulo">
+                      <button @click="abrirReciente(r)" class="ios-row press">
+                        <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white border border-white/90 shadow-sm text-ink-2"><i :data-lucide="iconoTipo(r.tipo)" class="h-[18px] w-[18px]"></i></span>
+                        <span class="flex-1 min-w-0"><span class="block text-[16px] font-medium text-ink truncate" x-text="r.titulo"></span><span class="block mt-0.5 text-[13px] text-ink-2" x-text="r.tipo + ' · ' + enfermedades[r.enfermedad].corto"></span></span>
+                        <i data-lucide="chevron-right" class="h-5 w-5 shrink-0 text-ink-3"></i>
+                      </button>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- Sin texto y con enfermedad: segmented + lista de la pestaña (skeleton 250 ms al cambiar) -->
+                <div x-show="!hoja.texto.trim() && hoja.enfermedad">
+                  <div class="mt-1">
+                    <p class="px-4 pb-2.5 text-[13px] font-medium text-ink-2"><span x-text="contenidoTema.length"></span> contenidos · Comité editorial Lilly</p>
+                    <div x-show="cargando" class="glass ios-list !bg-white/70">
+                      <template x-for="n in [1,2,3]" :key="'sk' + n">
+                        <div class="ios-row py-3.5"><span class="h-10 w-10 shrink-0 rounded-full bg-sep animate-pulse"></span><span class="flex-1"><span class="block h-4 w-3/4 rounded bg-sep animate-pulse"></span><span class="mt-2 block h-3 w-1/3 rounded bg-sep animate-pulse"></span></span></div>
+                      </template>
+                    </div>
+                    <template x-for="k in [tab]" :key="k">
+                      <div x-show="!cargando" class="glass ios-list stagger !bg-white/70">
+                        <template x-for="c in contenidoTema" :key="c.titulo">
+                          <button @click="abrirDetalle(c)" class="ios-row py-3.5 press active:bg-black/[.04] transition-colors">
+                            <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white border border-white/90 shadow-sm text-ink-2"><i :data-lucide="iconoTipo(c.tipo)" class="h-[18px] w-[18px]"></i></span>
+                            <span class="flex-1 min-w-0">
+                              <span class="text-[17px] font-semibold leading-[1.3] text-ink line-clamp-2" x-text="c.titulo"></span>
+                              <span class="mt-1 block text-[13px] text-ink-2" x-text="c.tipo + ' · ' + c.minutos + ' min · ' + c.fecha"></span>
+                            </span>
+                            <i data-lucide="chevron-right" class="h-5 w-5 shrink-0 text-ink-3"></i>
+                          </button>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- Con texto: resultados en vivo, término en negrita, vacío con salidas, y la pregunta como última fila -->
+                <div x-show="hoja.texto.trim()" class="mt-5">
+                  <p class="px-1 text-[13px] font-medium text-ink-2"><span x-text="hojaResultados.length"></span> <span x-text="hojaResultados.length === 1 ? 'resultado' : 'resultados'"></span> <span x-text="hoja.enfermedad ? 'en ' + enfermedades[hoja.enfermedad].corto : 'en todas las enfermedades'"></span></p>
+                  <div class="glass ios-list mt-3 !bg-white/70 stagger">
+                    <template x-for="r in hojaResultados" :key="'res-' + r.k + r.c.titulo">
+                      <button @click="hojaAbrirResultado(r)" class="ios-row press">
+                        <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white border border-white/90 shadow-sm text-ink-2"><i :data-lucide="iconoTipo(r.c.tipo)" class="h-[18px] w-[18px]"></i></span>
+                        <span class="flex-1 min-w-0"><span class="block text-[16px] font-medium leading-snug text-ink line-clamp-2" x-html="hojaResaltar(r.c.titulo)"></span><span class="block mt-0.5 text-[13px] text-ink-2" x-text="enfermedades[r.k].corto + ' · ' + tabs.find(t => t.id === r.t).nombre + ' · ' + r.c.tipo + ' · ' + r.c.minutos + ' min'"></span></span>
+                        <i data-lucide="chevron-right" class="h-5 w-5 shrink-0 text-ink-3"></i>
+                      </button>
+                    </template>
+                    <div x-show="!hojaResultados.length" class="ios-row"><span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white border border-white/90 shadow-sm text-ink-3"><i data-lucide="search-x" class="h-[18px] w-[18px]"></i></span><span class="flex-1 text-[16px] text-ink-2" x-text="'Sin resultados' + (hoja.enfermedad ? ' en ' + enfermedades[hoja.enfermedad].corto : '')"></span></div>
+                    <button x-show="!hojaResultados.length && hoja.enfermedad" @click="hojaQuitarEnfermedad()" class="ios-row press"><span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white border border-white/90 shadow-sm text-ink-2"><i data-lucide="layers" class="h-[18px] w-[18px]"></i></span><span class="flex-1 text-[16px] font-medium text-ink">Buscar en todas las enfermedades</span><i data-lucide="chevron-right" class="h-5 w-5 shrink-0 text-ink-3"></i></button>
+                    <button @click="ragEnviar(hoja.texto)" class="ios-row press"><span class="ios-orb !h-10 !w-10 shrink-0"></span><span class="flex-1 min-w-0"><span class="block text-[16px] font-medium text-ink truncate" x-text="'Preguntar a Lilly 360: “' + hoja.texto.trim() + '”'"></span><span class="block mt-0.5 text-[13px] text-ink-2">Consulta sobre estudios aprobados</span></span><span class="glass inline-flex h-7 items-center rounded-full px-2.5 text-[12px] font-medium text-ink-2">Fase 2</span></button>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </section>
+
+        <!-- Modo consulta (RAG, fase 2): overlay sobre la pantalla actual; en iPhone ocupa el lugar de la hoja en large, en iPad y escritorio es un panel centrado -->
+        <div x-show="rag.abierto" x-transition.opacity.duration.250ms class="absolute inset-0 z-[33]" :class="dispositivo === 'iphone' ? '' : 'flex items-center justify-center p-6'">
+          <div x-show="dispositivo !== 'iphone'" class="absolute inset-0" @click="ragCerrar()"></div>
+          <div class="consulta-panel glass-strong siri-card relative flex flex-col overflow-hidden" :class="dispositivo === 'iphone' ? '!absolute inset-x-0 bottom-0 top-2 rounded-t-[28px]' : 'w-full max-w-[640px] h-full max-h-[820px] rounded-[28px]'">
+
+            <!-- Cabecera -->
+            <div class="flex items-center justify-between px-4 h-14 shrink-0">
+              <button @click="ragCerrar()" class="glass-icon !h-9 !w-9 press" aria-label="Cerrar"><i data-lucide="x" class="h-[18px] w-[18px]"></i></button>
+              <span class="text-[12px] font-medium text-ink-3">Consulta · Fase 2</span>
+              <button @click="rag.fuentesAbierto = true" class="glass press inline-flex items-center gap-1.5 h-9 rounded-full px-3.5 text-[14px] font-medium text-ink"><i data-lucide="shield-check" class="h-4 w-4 text-lillyblue"></i>Fuentes</button>
+            </div>
+
+            <!-- Cuerpo: estado inicial con el orbe, o el hilo -->
+            <div class="flex-1 min-h-0 overflow-y-auto scroll-hide px-4" x-ref="hilo">
+              <div x-show="!rag.hilo.length" class="min-h-full flex flex-col items-center justify-center text-center py-6 stagger">
+                  <div class="flex items-center gap-7">
+                    <button class="glass-icon !h-12 !w-12 press" aria-label="Historial"><i data-lucide="clock" class="h-5 w-5 text-ink-2"></i></button>
+                    <span class="siri-orb-3d"></span>
+                    <button @click="ragDictar()" class="glass-icon !h-12 !w-12 press" aria-label="Preguntar por voz"><i data-lucide="mic" class="h-5 w-5 text-ink-2"></i></button>
+                  </div>
+                  <p class="mt-7 text-[17px] text-ink-2">Hola Óscar</p>
+                  <p class="mt-1 max-w-[420px] text-[28px] font-semibold leading-tight tracking-tight text-ink" x-text="ragAmbito ? '¿Qué necesitas saber sobre ' + ragAmbito.nombre.toLowerCase() + '?' : '¿Qué necesitas saber hoy?'"></p>
+                  <div class="mt-6 flex flex-wrap justify-center gap-2">
+                    <template x-for="s in ragSugerencias" :key="'c' + s"><button @click="ragEnviar(s)" class="ios-chip glass !h-9 !text-[13px] press" x-text="s"></button></template>
+                  </div>
+              </div>
+              <!-- Hilo (x-show y no x-if: Alpine duplica los ítems de un x-for anidado en x-if) -->
+              <div x-show="rag.hilo.length" class="py-3 space-y-4">
+                  <template x-for="(t, i) in rag.hilo" :key="t.rol + i">
+                    <div>
+                      <div x-show="t.rol === 'usuario'" class="flex justify-end"><div class="burbuja-usuario max-w-[85%] px-4 py-3 text-[16px] leading-relaxed text-ink" x-text="t.texto"></div></div>
+                      <div x-show="t.rol === 'lilly'" class="glass-strong siri-card max-w-[92%] rounded-[22px] px-4 pt-3 pb-4">
+                          <p class="text-[12px] font-semibold"><span class="text-lilly">Lilly</span> <span class="text-ink-3">360</span></p>
+                          <p class="mt-1.5 text-[16px] leading-[1.5] text-ink" x-text="t.cuerpo"></p>
+                          <p class="mt-3 text-[13px] text-ink-3">Fuente: 3 estudios aprobados · <button @click="rag.fuentesAbierto = true" class="font-medium text-lillyblue">Ver</button></p>
+                          <div class="mt-3 flex flex-wrap gap-2">
+                            <template x-for="s in ragSeguimientos(t)" :key="i + s"><button @click="ragEnviar(s)" class="ios-chip glass !h-8 !text-[12px] press" x-text="s"></button></template>
+                          </div>
+                          <!-- La respuesta lleva a la pieza aprobada que la sustenta (M9) -->
+                          <button x-show="t.pieza" @click="ragAbrirPieza(t)" class="ios-row press mt-3 !min-h-[52px] rounded-2xl border border-white/85 bg-white/70 !px-3">
+                            <span class="glass-icon !h-9 !w-9 !bg-white"><i :data-lucide="iconoTipo(t.pieza ? t.pieza.tipo : 'Algoritmo')" class="h-4 w-4"></i></span>
+                            <span class="flex-1 min-w-0 text-[14px] text-ink truncate"><span class="font-semibold">Abrir:</span> <span x-text="t.pieza ? t.pieza.titulo + ' · ' + t.pieza.tipo + ' · ' + t.pieza.minutos + ' min' : ''"></span></span>
+                            <i data-lucide="chevron-right" class="h-4 w-4 shrink-0 text-ink-3"></i>
+                          </button>
+                      </div>
+                    </div>
+                  </template>
+                  <div x-show="rag.estado === 'pensando'" class="flex items-center gap-2 px-1 text-[13px] text-ink-3"><span class="ios-orb is-active !h-4 !w-4"></span>Consultando estudios…</div>
+              </div>
+            </div>
+
+            <!-- Entrada: un solo campo con micrófono; al dictar aparece la onda. Chip de contexto cuando se llega desde una pieza (M10). -->
+            <div class="shrink-0 px-4 pb-4 pt-2">
+              <div x-show="rag.contexto" class="mb-2.5 flex">
+                <span class="ios-chip glass !h-8 !pr-1.5 !text-[12px] max-w-full gap-1.5"><span class="truncate" x-text="'Sobre: ' + rag.contexto"></span><button @click="rag.contexto = ''" class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black/5" aria-label="Quitar contexto"><i data-lucide="x" class="h-3 w-3"></i></button></span>
+              </div>
+              <template x-if="!rag.escuchando">
+                <label class="glass-strong ios-ask">
+                  <button class="glass-icon !h-9 !w-9 press" aria-label="Adjuntar caso clínico"><i data-lucide="plus" class="h-5 w-5"></i></button>
+                  <input x-ref="consultaInput" x-model="rag.texto" @focus="rag.foco = true" @blur="rag.foco = false" @keydown.enter="ragEnviar(rag.texto)"
+                         class="flex-1 min-w-0 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-3" placeholder="Pregunta lo que quieras…" />
+                  <button x-show="!rag.texto" @click="ragDictar()" class="glass-icon !h-9 !w-9 press" aria-label="Dictar"><i data-lucide="mic" class="h-[18px] w-[18px]"></i></button>
+                  <button x-show="rag.texto" @mousedown.prevent="ragEnviar(rag.texto)" class="ios-send !bg-lilly !text-white press" aria-label="Enviar"><i data-lucide="arrow-up" class="h-5 w-5"></i></button>
+                </label>
+              </template>
+              <template x-if="rag.escuchando">
+                <div>
+                  <div class="flex justify-center">
+                    <span class="glass-dark inline-flex items-center gap-2 h-9 rounded-full pl-3 pr-1 text-[13px] font-medium">
+                      <span class="h-2 w-2 rounded-full bg-lilly animate-pulse"></span>
+                      <span>Escuchando…</span>
+                      <button @click="ragCancelarVoz()" class="ml-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/15" aria-label="Cancelar"><i data-lucide="x" class="h-3.5 w-3.5"></i></button>
+                      <button class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/15" aria-label="Ajustes de voz"><i data-lucide="settings-2" class="h-3.5 w-3.5"></i></button>
+                    </span>
+                  </div>
+                  <div class="voz-onda mt-3"><svg viewBox="0 0 800 80" preserveAspectRatio="none"><path d="M0 40 Q25 22 50 40 T100 40 Q125 22 150 40 T200 40 Q225 22 250 40 T300 40 Q325 22 350 40 T400 40 Q425 22 450 40 T500 40 Q525 22 550 40 T600 40 Q625 22 650 40 T700 40 Q725 22 750 40 T800 40 Q825 22 850 40 T900 40 V80 H-100 Z"></path><path d="M-35 40 Q-10 14 15 40 T65 40 Q90 14 115 40 T165 40 Q190 14 215 40 T265 40 Q290 14 315 40 T365 40 Q390 14 415 40 T465 40 Q490 14 515 40 T565 40 Q590 14 615 40 T665 40 Q690 14 715 40 T765 40 Q790 14 815 40 T865 40 V80 H-100 Z"></path><path d="M-70 40 Q-45 26 -20 40 T30 40 Q55 26 80 40 T130 40 Q155 26 180 40 T230 40 Q255 26 280 40 T330 40 Q355 26 380 40 T430 40 Q455 26 480 40 T530 40 Q555 26 580 40 T630 40 Q655 26 680 40 T730 40 Q755 26 780 40 T830 40 Q855 26 880 40 T930 40 V80 H-100 Z"></path><path d="M-15 40 Q10 10 35 40 T85 40 Q110 10 135 40 T185 40 Q210 10 235 40 T285 40 Q310 10 335 40 T385 40 Q410 10 435 40 T485 40 Q510 10 535 40 T585 40 Q610 10 635 40 T685 40 Q710 10 735 40 T785 40 Q810 10 835 40 T885 40 V80 H-100 Z"></path></svg></div>
+                  <p class="mt-3 min-h-[52px] px-2 text-center text-[17px] leading-snug">
+                    <template x-for="(w, i) in rag.dictado" :key="i"><span :class="w.clave ? 'font-semibold text-ink' : 'text-ink-3'" x-text="w.t + ' '"></span></template>
+                  </p>
+                  <div class="mt-1 flex items-center justify-center gap-5">
+                    <span class="voz-barras is-on"><i></i><i></i><i></i><i></i><i></i></span>
+                    <button @click="ragCancelarVoz()" class="voz-mic is-on press" aria-label="Detener el dictado"><i data-lucide="mic" class="h-6 w-6"></i></button>
+                    <span class="voz-barras is-on"><i></i><i></i><i></i><i></i><i></i></span>
+                  </div>
+                </div>
+              </template>
+            </div>
+
+            <!-- Panel «Fuentes»: sheet de vidrio desde abajo con asa -->
+            <!-- Sin x-transition de Alpine aquí: en Chrome headless desplazaba el marco entero; el fundido va por CSS (.fade-in) -->
+            <div x-show="rag.fuentesAbierto" class="absolute inset-0 z-10 fade-in" @click.self="rag.fuentesAbierto = false">
+              <div class="absolute inset-0 bg-black/10" @click="rag.fuentesAbierto = false"></div>
+              <div class="glass-strong ios-sheet siri-sheet-up absolute inset-x-0 bottom-0 px-5 pb-7">
+                <p class="text-[20px] font-semibold tracking-tight text-ink">Responde solo con…</p>
+                <div class="glass ios-list mt-4 !bg-white/70">
+                  <template x-for="f in rag.fuentes" :key="f.n">
+                    <div class="ios-row">
+                      <span class="flex-1 min-w-0"><span class="block text-[16px] text-ink" x-text="f.n"></span><span x-show="f.fijo" class="block text-[12px] text-ink-3">Siempre activo</span></span>
+                      <button class="ios-switch" role="switch" :aria-checked="f.on ? 'true' : 'false'" :disabled="f.fijo" @click="if (!f.fijo) f.on = !f.on" :aria-label="f.n"></button>
+                    </div>
+                  </template>
+                </div>
+                <p class="mt-3 px-1 text-[13px] text-ink-3">Nunca consulta fuentes abiertas de internet.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botón de consulta (fase 2): abre el panel. Un solo campo de texto por pantalla: el buscador de la hoja. -->
+        <div x-show="pantalla === 'tema' && !rag.abierto" x-transition.opacity.duration.300ms class="absolute z-30" :class="dispositivo === 'iphone' ? 'inset-x-4 bottom-5' : 'left-1/2 -translate-x-1/2 w-full max-w-[640px] bottom-6'">
+          <button @click="ragAbrir()" class="glass-strong ios-ask w-full text-left press" aria-label="Preguntar a Lilly 360, consulta en fase 2">
+            <span class="ios-orb"></span>
+            <span class="flex-1 min-w-0 truncate text-[16px] font-medium text-ink">Preguntar a Lilly 360</span>
+            <span class="glass mr-1 inline-flex h-7 shrink-0 items-center rounded-full px-2.5 text-[12px] font-medium text-ink-2">Fase 2</span>
+          </button>
+        </div>
+
+        <!-- Tab bar flotante (Liquid Glass) de 3 + botón circular de búsqueda (patrón UITab.search de iOS 26), solo iPhone -->
+        <div x-show="dispositivo === 'iphone'" class="ios-tabbar-wrap" :class="{ 'is-oculta': hojaTabOculta, 'is-min': tabMin }">
+          <nav class="glass-strong ios-tabbar" aria-label="Secciones">
+            <template x-for="t in tabBar" :key="t.id">
+              <button @click="irRaiz(t.id)" class="ios-tab press" :aria-selected="tabActivo === t.id ? 'true' : 'false'" :aria-label="t.nombre">
+                <i :data-lucide="t.icono" class="h-[22px] w-[22px]"></i>
+                <span x-show="tabActivo === t.id" x-text="t.nombre"></span>
+              </button>
+            </template>
+          </nav>
+          <button @click="buscarGlobal()" class="glass-strong ios-tab-search press" aria-label="Buscar en Lilly 360"><i data-lucide="search" class="h-[22px] w-[22px]"></i></button>
+        </div>
+          </div><!-- /proto-main -->
+        </div><!-- /proto-row -->
+      </div><!-- /proto-screen -->
+      </div><!-- /proto-frame -->
+    </div><!-- /proto-fit -->
+  </section>
+</main>
+

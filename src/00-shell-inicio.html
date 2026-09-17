@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lilly 360 · Prototipo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com?plugins=container-queries"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['-apple-system', '"SF Pro Display"', '"SF Pro Text"', 'Inter', 'system-ui', 'sans-serif'] },
+        colors: {
+          ink: { DEFAULT: '#1A1A1A', 2: '#5F6368', 3: '#9AA0A6' },
+          lilly: { DEFAULT: '#D52B1E', dark: '#A81F15', soft: '#FDECEA' },
+          lillyblue: { DEFAULT: '#1F5FA8', soft: '#E6F0FA' },
+          diabetes: { DEFAULT: '#1F5FA8', soft: '#E6F0FA' },
+          mama:     { DEFAULT: '#C8102E', soft: '#FBE9EC' },
+          derma:    { DEFAULT: '#0F7C7C', soft: '#E3F3F3' },
+          sep: 'rgba(60,60,67,.12)',
+        },
+        boxShadow: {
+          phone: '0 40px 80px -20px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.06)',
+          glass: '0 8px 32px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.7)',
+          pill: '0 1px 3px rgba(0,0,0,.08), 0 6px 16px rgba(0,0,0,.06)',
+        },
+      },
+    },
+  };
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  /* ===== Tokens compartidos (ver design.md). Los tres agentes usan estas clases; no se redefinen en las pantallas. ===== */
+  [x-cloak] { display: none !important; }
+  .scroll-hide::-webkit-scrollbar { display: none; }
+  .scroll-hide { scrollbar-width: none; }
+  .phone-screen { scroll-behavior: smooth; }
+
+  /* Fondo de escena: gradiente suave con dos manchas de luz. Se tinta por enfermedad. */
+  .bg-scene { position: relative; background: linear-gradient(180deg, #F7F7F8 0%, #F4F4F6 60%, #F2F2F4 100%); }
+  .bg-scene::before, .bg-scene::after { content: ''; position: absolute; inset: auto; border-radius: 9999px; filter: blur(60px); pointer-events: none; opacity: 1; transition: background 600ms ease; }
+  .bg-scene::before { width: 320px; height: 320px; top: -120px; right: -100px; background: rgba(213,43,30,.18); }
+  .bg-scene::after  { width: 280px; height: 280px; bottom: 40px; left: -120px; background: rgba(31,95,168,.14); }
+  .bg-scene[data-tinte="diabetes"]::before { background: rgba(31,95,168,.22); } .bg-scene[data-tinte="diabetes"]::after { background: rgba(31,95,168,.12); }
+  .bg-scene[data-tinte="mama"]::before     { background: rgba(200,16,46,.18); } .bg-scene[data-tinte="mama"]::after     { background: rgba(200,16,46,.10); }
+  .bg-scene[data-tinte="derma"]::before    { background: rgba(15,124,124,.20); } .bg-scene[data-tinte="derma"]::after    { background: rgba(15,124,124,.10); }
+  .bg-scene > * { position: relative; z-index: 1; }
+
+  /* Vidrio */
+  .glass        { background: rgba(255,255,255,.65); -webkit-backdrop-filter: blur(24px) saturate(1.4); backdrop-filter: blur(24px) saturate(1.4); border: 1px solid rgba(255,255,255,.6); box-shadow: 0 8px 32px rgba(0,0,0,.06), inset 0 1px 0 rgba(255,255,255,.7); }
+  .glass-strong { background: rgba(255,255,255,.85); -webkit-backdrop-filter: blur(28px) saturate(1.6); backdrop-filter: blur(28px) saturate(1.6); border: 1px solid rgba(255,255,255,.7); box-shadow: 0 8px 32px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.8); }
+  .glass-dark   { background: rgba(20,20,22,.55); -webkit-backdrop-filter: blur(24px) saturate(1.4); backdrop-filter: blur(24px) saturate(1.4); border: 1px solid rgba(255,255,255,.18); color: #fff; }
+
+  /* Componentes iOS 27 */
+  .ios-large-title { font-size: 34px; line-height: 1.15; font-weight: 700; letter-spacing: -0.02em; color: #1A1A1A; }
+  .ios-navbar { position: sticky; top: 0; z-index: 20; height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+  .ios-back { display: inline-flex; align-items: center; gap: 2px; height: 36px; padding: 0 12px 0 8px; border-radius: 9999px; font-size: 15px; font-weight: 500; color: #D52B1E; }
+  .ios-search { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: 9999px; color: #8E8E93; font-size: 17px; }
+  .ios-segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding: 3px; border-radius: 9999px; position: relative; }
+  .ios-segment { position: relative; z-index: 1; height: 38px; border-radius: 9999px; font-size: 14px; font-weight: 500; color: #5F6368; transition: color 300ms; }
+  .ios-segment[aria-selected="true"] { color: #1A1A1A; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 6px 16px rgba(0,0,0,.06); font-weight: 600; }
+  .ios-chip { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 9999px; font-size: 14px; font-weight: 500; color: #1A1A1A; white-space: nowrap; transition: all 250ms; }
+  .ios-chip[aria-selected="true"] { background: #D52B1E; color: #fff; border-color: #D52B1E; }
+  .ios-list { border-radius: 24px; overflow: hidden; }
+  .ios-row { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 12px 16px; text-align: left; width: 100%; }
+  .ios-row + .ios-row { border-top: 1px solid rgba(60,60,67,.12); }
+  .ios-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 50px; padding: 0 22px; border-radius: 9999px; font-size: 17px; font-weight: 600; background: #D52B1E; color: #fff; transition: transform 150ms, opacity 150ms; }
+  .ios-btn:active { transform: scale(.97); }
+  .ios-btn-accent { background: #D52B1E; }
+  .ios-btn-glass { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 50px; padding: 0 22px; border-radius: 9999px; font-size: 17px; font-weight: 600; color: #1A1A1A; }
+  .ios-tabbar { position: absolute; left: 50%; transform: translateX(-50%); bottom: 12px; z-index: 30; display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: 9999px; }
+  .ios-tab { display: inline-flex; align-items: center; gap: 6px; height: 46px; padding: 0 14px; border-radius: 9999px; color: #5F6368; font-size: 13px; font-weight: 600; transition: all 300ms cubic-bezier(.32,.72,0,1); }
+  .ios-tab[aria-selected="true"] { background: #fff; color: #1A1A1A; box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 6px 16px rgba(0,0,0,.06); padding: 0 16px; }
+  .ios-sheet { border-radius: 28px 28px 0 0; padding-top: 8px; }
+  .ios-sheet::before { content: ''; display: block; width: 36px; height: 5px; border-radius: 9999px; background: #C7C7CC; margin: 0 auto 10px; }
+  .ios-ask { display: flex; align-items: center; gap: 10px; height: 52px; padding: 4px 6px 4px 6px; border-radius: 9999px; }
+  .ios-orb { width: 40px; height: 40px; border-radius: 9999px; flex: none; position: relative; overflow: hidden; isolation: isolate; box-shadow: 0 0 18px rgba(31,95,168,.30), 0 0 32px rgba(213,43,30,.18), inset 0 0 12px rgba(255,255,255,.7); }
+  .ios-orb::before { content: ''; position: absolute; inset: -35%; border-radius: inherit; background: conic-gradient(from 0deg, #D52B1E, #E24D3E, #F0705E, #F49C96, #F8C9CF, #FBDEE0, #FFF4F1, #E7EAF5, #CFE0FA, #779FD1, #1F5FA8, #4557B3, #6B4FBF, #A03D6E, #D52B1E); filter: blur(7px) saturate(1.25); }
+  .ios-orb::after  { content: ''; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(circle at 50% 42%, rgba(255,255,255,.78) 0, rgba(255,255,255,.34) 30%, rgba(255,255,255,0) 64%); }
+  .ios-orb[class*="!h-4"]::before, .ios-orb[class*="!h-5"]::before { filter: blur(3px) saturate(1.25); }
+  .ios-orb.is-active { animation: orb-spin 6s linear infinite; }
+  .dynamic-island { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); height: 34px; min-width: 122px; border-radius: 9999px; background: #000; color: #fff; z-index: 40; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 14px; font-size: 12px; font-weight: 600; transition: min-width 400ms cubic-bezier(.2,.8,.2,1), height 400ms cubic-bezier(.2,.8,.2,1); overflow: hidden; }
+  .dynamic-island.is-expanded { min-width: 220px; height: 38px; }
+
+  /* Movimiento */
+  @keyframes screen-in   { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  @keyframes screen-back { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+  @keyframes card-in     { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: none; } }
+  @keyframes orb-spin    { to { transform: rotate(360deg); } }
+  .screen-enter { animation: screen-in 320ms cubic-bezier(.32,.72,0,1) both; }
+  .screen-back  { animation: screen-back 320ms cubic-bezier(.32,.72,0,1) both; }
+  .stagger > * { animation: card-in 420ms cubic-bezier(.2,.8,.2,1) both; }
+  .stagger > *:nth-child(1) { animation-delay: 0ms; }  .stagger > *:nth-child(2) { animation-delay: 40ms; }
+  .stagger > *:nth-child(3) { animation-delay: 80ms; } .stagger > *:nth-child(4) { animation-delay: 120ms; }
+  .stagger > *:nth-child(5) { animation-delay: 160ms; } .stagger > *:nth-child(6) { animation-delay: 200ms; }
+  .press { transition: transform 150ms cubic-bezier(.2,.8,.2,1); } .press:active { transform: scale(.97); }
+  @media (prefers-reduced-motion: reduce) { .screen-enter, .screen-back, .stagger > *, .ios-orb.is-active { animation: none !important; } }
+
+  /* Árbol de decisión (detalle) */
+  .tree-line { position: relative; }
+  .tree-line::before { content: ''; position: absolute; left: 50%; top: -14px; width: 2px; height: 14px; background: rgba(60,60,67,.18); }
+
+  /* ===== Añadido por el cascarón: status bar, acción de nav bar, tarjetas tintadas, degradado bajo la tab bar ===== */
+  .ios-status { height: 54px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 10px 26px 0 30px; font-size: 15px; font-weight: 600; color: #1A1A1A; letter-spacing: -0.01em; }
+  .ios-nav-action { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 14px; border-radius: 9999px; font-size: 15px; font-weight: 600; color: #D52B1E; }
+  .glass-icon { width: 44px; height: 44px; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,.85); border: 1px solid rgba(255,255,255,.95); box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04); color: #1A1A1A; }
+  /* Formación ágil: gradiente muy diluido por enfermedad sobre vidrio; nunca bloques saturados. */
+  .tint-card { border: 1px solid rgba(255,255,255,.75); box-shadow: 0 8px 32px rgba(0,0,0,.05), inset 0 1px 0 rgba(255,255,255,.85); -webkit-backdrop-filter: blur(24px) saturate(1.4); backdrop-filter: blur(24px) saturate(1.4); }
+  .tint-card[data-tinte="diabetes"] { background: linear-gradient(135deg, rgba(255,255,255,.86) 0%, rgba(31,95,168,.14) 100%); }
+  .tint-card[data-tinte="mama"]     { background: linear-gradient(135deg, rgba(255,255,255,.86) 0%, rgba(200,16,46,.12) 100%); }
+  .tint-card[data-tinte="derma"]    { background: linear-gradient(135deg, rgba(255,255,255,.86) 0%, rgba(15,124,124,.13) 100%); }
+  /* El contenido pasa por debajo de la tab bar flotante: este degradado lo apaga suavemente. */
+  .tab-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 112px; pointer-events: none; z-index: 25; background: linear-gradient(to top, rgba(242,242,244,.96) 0%, rgba(242,242,244,.6) 45%, rgba(242,242,244,0) 100%); }
+  .ios-navbar.is-scrolled { background: rgba(255,255,255,.72); -webkit-backdrop-filter: blur(24px) saturate(1.4); backdrop-filter: blur(24px) saturate(1.4); box-shadow: 0 1px 0 rgba(60,60,67,.08); }
+  .proto-panel { font-family: Inter, system-ui, sans-serif; }
+  /* La isla expandida nunca alcanza el reloj ni los iconos del sistema. */
+  .dynamic-island.is-expanded { min-width: 172px; max-width: 188px; }
+  /* ===== Siri / Apple Intelligence (ver siri-referencia.md): glow de borde, Type to Siri, respuesta ===== */
+  @property --siri-angle  { syntax: "<angle>"; inherits: false; initial-value: 180deg; }
+  @property --siri-w      { syntax: "<length>"; inherits: true; initial-value: 0px; }
+  @property --siri-reveal { syntax: "<percentage>"; inherits: true; initial-value: 0%; }
+  /* Overlay dentro de la pantalla, con su mismo radio. Nace desde abajo (máscara radial desde el borde inferior), respira y gira lento. */
+  .siri-glow { position: absolute; inset: 0; border-radius: 42px; pointer-events: none; z-index: 35; opacity: 0; --siri-w: 0px; --siri-reveal: 0%;
+    transition: opacity .55s ease-in, --siri-w .55s ease-in, --siri-reveal .55s ease-in;
+    -webkit-mask: radial-gradient(circle at 50% 100%, #000 var(--siri-reveal), transparent calc(var(--siri-reveal) + 30%));
+            mask: radial-gradient(circle at 50% 100%, #000 var(--siri-reveal), transparent calc(var(--siri-reveal) + 30%)); }
+  /* Halo Lilly (alias .lilly-glow): dos lóbulos de luz —rojo abajo a la izquierda, azul arriba a la derecha— que recorren el
+     borde en sentidos opuestos (9 s y 13 s) sobre un anillo base tenue rojo·blanco·azul. Nada de amarillo ni verde. */
+  @property --lobA { syntax: "<angle>"; inherits: false; initial-value: 190deg; }
+  @property --lobB { syntax: "<angle>"; inherits: false; initial-value: 350deg; }
+  .siri-glow::before, .siri-glow::after, .lilly-glow::before, .lilly-glow::after { content: ''; position: absolute; inset: 0; border-radius: inherit;
+    background:
+      conic-gradient(from var(--lobA), rgba(213,43,30,0) 0deg, #D52B1E 28deg, #F0705E 55deg, #FFF4F1 82deg, rgba(255,244,241,0) 125deg, rgba(213,43,30,0) 360deg),
+      conic-gradient(from var(--lobB), rgba(207,224,250,0) 0deg, #CFE0FA 28deg, #1F5FA8 55deg, #6B4FBF 82deg, rgba(107,79,191,0) 125deg, rgba(207,224,250,0) 360deg),
+      conic-gradient(from 0deg, rgba(213,43,30,.45), rgba(226,77,62,.45), rgba(240,112,94,.45), rgba(244,156,150,.45), rgba(248,201,207,.45), rgba(251,222,224,.45), rgba(255,244,241,.45), rgba(231,234,245,.45), rgba(207,224,250,.45), rgba(119,159,209,.45), rgba(31,95,168,.45), rgba(69,87,179,.45), rgba(107,79,191,.45), rgba(160,61,110,.45), rgba(213,43,30,.45));
+    padding: var(--siri-w);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    animation: lilly-lobA 9s linear infinite, lilly-lobB 13s linear infinite; }
+  @keyframes lilly-lobA { to { --lobA: 550deg; } }
+  @keyframes lilly-lobB { to { --lobB: -10deg; } }
+  .siri-glow::before { filter: blur(2.5px); }
+  .siri-glow::after  { filter: blur(14px); opacity: .8; }
+  .lilly-glow { position: absolute; inset: 0; border-radius: 42px; pointer-events: none; z-index: 35; }
+  .lilly-orb { width: 40px; height: 40px; border-radius: 9999px; flex: none; position: relative; overflow: hidden; isolation: isolate; }
+  .siri-glow.is-on { opacity: 1; --siri-w: 7px; --siri-reveal: 140%;
+    transition: opacity .4s ease-out, --siri-w .4s ease-out, --siri-reveal .45s ease-out;
+    animation: siri-breathe 2.4s ease-in-out .4s infinite; }
+  .siri-glow.is-thinking { animation: siri-breathe-fast 1.2s ease-in-out infinite; }
+  /* Pensando: los lóbulos aceleran (2,4 s) y se ensanchan con el anillo. */
+  .siri-glow.is-thinking::before, .siri-glow.is-thinking::after { animation-duration: 2.4s, 2.4s; }
+  .siri-glow.is-speaking { opacity: .4; }
+  @keyframes siri-spin         { to { --siri-angle: 540deg; } }
+  @keyframes siri-breathe      { 0%, 100% { --siri-w: 7px; }  50% { --siri-w: 11px; } }
+  @keyframes siri-breathe-fast { 0%, 100% { --siri-w: 10px; } 50% { --siri-w: 14px; } }
+
+  /* Barra de consulta: sube 6 px y gana sombra al enfocar; botón ↑ blanco cuando hay texto. */
+  .ios-ask-wrap { transition: transform .42s cubic-bezier(.32,.72,0,1); }
+  .ios-ask-wrap .ios-ask { transition: box-shadow .42s cubic-bezier(.32,.72,0,1); }
+  .ios-ask-wrap.is-focus { transform: translateY(-6px); }
+  .ios-ask-wrap.is-focus .ios-ask { box-shadow: 0 18px 44px rgba(0,0,0,.16), 0 2px 6px rgba(0,0,0,.05), inset 0 1px 0 rgba(255,255,255,.8); }
+  .ios-send { width: 38px; height: 38px; border-radius: 9999px; flex: none; display: inline-flex; align-items: center; justify-content: center; background: #fff; color: #1A1A1A; box-shadow: 0 1px 3px rgba(0,0,0,.1), 0 4px 12px rgba(0,0,0,.08); }
+  .ios-suggestion { display: flex; align-items: center; gap: 10px; width: 100%; height: 38px; padding: 0 6px; text-align: left; font-size: 15px; color: #1A1A1A; border-radius: 12px; }
+  /* Tarjeta de respuesta: cae desde arriba; el contenido de atrás se atenúa con filter (no con opacity, que la animación de pantalla mantiene fija). */
+  .siri-card { animation: siri-card-in .45s cubic-bezier(.32,.72,0,1) both; }
+  .siri-pill { animation: siri-card-in .45s cubic-bezier(.32,.72,0,1) .12s both; }
+  @keyframes siri-card-in { from { opacity: 0; transform: translateY(-16px) scale(.98); } to { opacity: 1; transform: none; } }
+  .phone-screen { transition: filter 380ms cubic-bezier(.32,.72,0,1); }
+  .phone-screen.is-velo-drag { transition: none; }
+  .phone-screen.is-dimmed { filter: blur(6px) opacity(.5); }
+  @media (prefers-reduced-motion: reduce) { .siri-glow, .siri-glow::before, .siri-glow::after, .lilly-glow::before, .lilly-glow::after, .siri-card, .siri-pill { animation: none !important; } .siri-glow.is-on { --siri-w: 8px; } }
+  /* ===== Marcos del prototipo: un solo marco que muta (iPhone 17 Pro Max · iPad 11" · ventana macOS) ===== */
+  .proto-fit   { transition: width .38s cubic-bezier(.32,.72,0,1), height .38s cubic-bezier(.32,.72,0,1); }
+  .proto-frame { position: relative; transform-origin: 0 0; transition: width .38s cubic-bezier(.32,.72,0,1), height .38s cubic-bezier(.32,.72,0,1), border-radius .38s cubic-bezier(.32,.72,0,1), padding .38s cubic-bezier(.32,.72,0,1), transform .38s cubic-bezier(.32,.72,0,1), background .38s ease, box-shadow .38s ease; }
+  .proto-frame.is-iphone  { padding: 10px; border-radius: 72px; background: #1C1C1E; box-shadow: 0 40px 80px -20px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.06); }
+  .proto-frame.is-ipad    { padding: 18px; border-radius: 40px; background: #17171A; box-shadow: 0 40px 90px -20px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.06); }
+  .proto-frame.is-desktop { padding: 0;    border-radius: 12px; background: #FBFBFD; box-shadow: 0 60px 120px -30px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.08); }
+  .proto-screen { height: 100%; width: 100%; overflow: hidden; display: flex; flex-direction: column; position: relative; transition: border-radius .38s cubic-bezier(.32,.72,0,1); }
+  .is-iphone  .proto-screen, .is-iphone  .siri-glow { border-radius: 62px; }
+  .is-ipad    .proto-screen, .is-ipad    .siri-glow { border-radius: 22px; }
+  .is-desktop .proto-screen, .is-desktop .siri-glow { border-radius: 12px; }
+  /* Las manchas de luz crecen con la pantalla. */
+  .is-ipad .bg-scene::before, .is-desktop .bg-scene::before { width: 640px; height: 640px; top: -220px; right: -160px; }
+  .is-ipad .bg-scene::after,  .is-desktop .bg-scene::after  { width: 560px; height: 560px; bottom: -120px; left: -160px; }
+  /* Fila sidebar + contenido. El sidebar se abre por ancho para que el cambio de marco sea un morph. */
+  .proto-row  { flex: 1; display: flex; min-height: 0; }
+  .proto-main { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
+  .ios-sidebar { flex: none; width: 0; opacity: 0; overflow: hidden; display: flex; flex-direction: column; padding: 18px 0; background: rgba(255,255,255,.42); -webkit-backdrop-filter: blur(24px) saturate(1.4); backdrop-filter: blur(24px) saturate(1.4); transition: width .38s cubic-bezier(.32,.72,0,1), opacity .3s ease, padding .38s cubic-bezier(.32,.72,0,1); }
+  .is-ipad    .ios-sidebar { width: 240px; opacity: 1; padding: 18px 14px; border-right: 1px solid rgba(255,255,255,.6); }
+  .is-desktop .ios-sidebar { width: 260px; opacity: 1; padding: 20px 16px; border-right: 1px solid rgba(255,255,255,.6); }
+  .ios-sidebar > * { width: 100%; min-width: 212px; }
+  .ios-side-item { display: flex; align-items: center; gap: 12px; width: 100%; height: 44px; padding: 0 14px; border-radius: 14px; font-size: 15px; font-weight: 500; color: #1A1A1A; text-align: left; transition: background .3s cubic-bezier(.32,.72,0,1), box-shadow .3s; }
+  .ios-side-item:hover { background: rgba(255,255,255,.45); }
+  .ios-side-item[aria-selected="true"] { background: #fff; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 6px 16px rgba(0,0,0,.05); }
+  .ios-side-item[aria-selected="true"] > svg { color: #D52B1E; }
+  .ios-side-label { padding: 0 14px; margin: 22px 0 6px; font-size: 12px; font-weight: 600; color: #9AA0A6; }
+  /* Status bar de iPadOS y barra de título de macOS */
+  .ipad-status { height: 24px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; font-size: 12px; font-weight: 600; color: #1A1A1A; }
+  .mac-titlebar { height: 40px; flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; background: rgba(246,246,248,.92); border-bottom: 1px solid rgba(60,60,67,.1); }
+  .mac-url { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 26px; min-width: 380px; padding: 0 14px; border-radius: 9999px; background: rgba(60,60,67,.08); font-size: 12px; color: #5F6368; }
+  /* Switcher de dispositivo en la barra del prototipo */
+  .proto-seg { display: inline-flex; padding: 3px; border-radius: 9999px; background: rgba(255,255,255,.08); }
+  .proto-seg button { height: 28px; padding: 0 12px; border-radius: 9999px; font-size: 12px; font-weight: 500; color: rgba(255,255,255,.55); transition: all .3s cubic-bezier(.32,.72,0,1); white-space: nowrap; }
+  .proto-seg button[aria-selected="true"] { background: #fff; color: #000; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+  /* ===== Hoja inferior tipo Apple Maps (iPhone, ver maps-sheet-referencia.md): tarjeta de vidrio inset en small y medium,
+     opaca y pegada a los bordes en large; tres detents, arrastre 1:1, snap con la curva iOS ===== */
+  .ios-hoja { position: absolute; left: 8px; right: 8px; bottom: 0; z-index: 28; display: flex; flex-direction: column; border-radius: 30px; overflow: hidden; will-change: height; touch-action: none;
+    box-shadow: 0 -2px 24px rgba(0,0,0,.10), 0 12px 40px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.8);
+    transition: height 380ms cubic-bezier(.32,.72,0,1), bottom 350ms cubic-bezier(.32,.72,0,1), left 350ms ease, right 350ms ease, border-radius 350ms ease, background 350ms ease, transform 380ms cubic-bezier(.32,.72,0,1); }
+  .ios-hoja.is-medium { left: 4px; right: 4px; border-radius: 36px; }
+  .ios-hoja.is-large  { left: 0; right: 0; border-radius: 28px 28px 0 0; background: rgba(242,242,247,.985); -webkit-backdrop-filter: none; backdrop-filter: none; border-color: transparent; }
+  .ios-hoja.is-dragging { transition: bottom 350ms cubic-bezier(.32,.72,0,1), left 350ms ease, right 350ms ease, border-radius 350ms ease, background 350ms ease; }
+  .ios-hoja.is-oculta { transform: translateY(calc(100% + 120px)) !important; pointer-events: none; }
+  .hoja-asa-zona { position: absolute; top: 0; left: 0; right: 0; height: 44px; display: flex; justify-content: center; padding-top: 5px; z-index: 2; cursor: grab; }
+  .hoja-asa { width: 36px; height: 5px; border-radius: 2.5px; background: rgba(60,60,67,.30); }
+  .hoja-head { flex: none; padding: 20px 16px 12px; }
+  .hoja-body { flex: 1; min-height: 0; overflow: hidden; }
+  .ios-hoja.is-large .hoja-body { overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; }
+  .hoja-body::-webkit-scrollbar { display: none; }
+  /* La tab bar se desliza hacia abajo cuando la hoja pasa de small (como Maps oculta sus controles). */
+  .ios-tabbar { transition: transform 380ms cubic-bezier(.32,.72,0,1), opacity 300ms ease; }
+  .ios-tabbar.is-oculta { transform: translate(-50%, 120px); opacity: 0; pointer-events: none; }
+  /* ===== Modo consulta (RAG): panel, orbe 3D, onda de voz, barras, micrófono, interruptores ===== */
+  .consulta-panel { box-shadow: 0 -12px 40px rgba(0,0,0,.12), 0 24px 60px rgba(0,0,0,.18); }
+  .ios-hoja.is-dimmed { filter: blur(6px) opacity(.6); }
+  @property --orb3d { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+  /* Esfera tipo canica: conic difuminado que gira detrás, brillo arriba-izquierda y sombra interior fijos encima. */
+  .siri-orb-3d { position: relative; width: 132px; height: 132px; border-radius: 50%; overflow: hidden; isolation: isolate; flex: none;
+    box-shadow: inset -16px -20px 40px rgba(20,20,60,.32), inset 12px 14px 28px rgba(255,255,255,.4), 0 24px 56px rgba(31,95,168,.26), 0 8px 24px rgba(213,43,30,.14);
+    animation: orb-breathe 3.6s ease-in-out infinite; }
+  .siri-orb-3d::before { content: ''; position: absolute; inset: -25%; background: conic-gradient(from var(--orb3d), #D52B1E, #E24D3E, #F0705E, #F8C9CF, #FFF4F1, #CFE0FA, #779FD1, #1F5FA8, #4557B3, #6B4FBF, #A03D6E, #D52B1E); filter: blur(16px) saturate(1.15); animation: orb3d-spin 14s linear infinite; }
+  .siri-orb-3d::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(circle at 32% 26%, rgba(255,255,255,.95) 0, rgba(255,255,255,.42) 16%, rgba(255,255,255,0) 42%), radial-gradient(circle at 72% 82%, rgba(20,20,60,.32) 0, rgba(20,20,60,0) 48%); }
+  @keyframes orb3d-spin { to { --orb3d: 360deg; } }
+  @keyframes orb-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+  /* Onda de voz: cuatro curvas translúcidas que se desplazan a distinta velocidad sobre vidrio oscuro. */
+  .voz-onda { height: 76px; border-radius: 20px; overflow: hidden; background: rgba(20,20,22,.82); border: 1px solid rgba(255,255,255,.12); }
+  .voz-onda svg { width: 200%; height: 100%; display: block; }
+  .voz-onda path { animation: onda-mover linear infinite; }
+  .voz-onda path:nth-child(1) { fill: rgba(213,43,30,.42);  animation-duration: 2.6s; }
+  .voz-onda path:nth-child(2) { fill: rgba(31,95,168,.42);  animation-duration: 3.4s; }
+  .voz-onda path:nth-child(3) { fill: rgba(158,98,166,.42); animation-duration: 4.4s; animation-direction: reverse; }
+  .voz-onda path:nth-child(4) { fill: rgba(255,255,255,.20); animation-duration: 5.2s; }
+  .voz-onda.is-quiet path { animation-play-state: paused; opacity: .5; }
+  @keyframes onda-mover { to { transform: translateX(-400px); } }
+  .voz-barras { display: inline-flex; align-items: center; gap: 3px; height: 24px; }
+  .voz-barras i { display: block; width: 4px; height: 6px; border-radius: 2px; background: #1A1A1A; opacity: .3; }
+  .voz-barras.is-on i { opacity: .85; animation: barra 1s ease-in-out infinite; }
+  .voz-barras i:nth-child(2) { animation-delay: .12s; } .voz-barras i:nth-child(3) { animation-delay: .24s; } .voz-barras i:nth-child(4) { animation-delay: .36s; } .voz-barras i:nth-child(5) { animation-delay: .48s; }
+  @keyframes barra { 0%, 100% { height: 6px; } 50% { height: 22px; } }
+  .voz-mic { position: relative; width: 56px; height: 56px; border-radius: 50%; background: #fff; color: #1A1A1A; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 6px 16px rgba(0,0,0,.08); }
+  .voz-mic.is-on { color: #D52B1E; }
+  .voz-mic.is-on::before { content: ''; position: absolute; inset: -4px; border-radius: 50%; padding: 3px; background: conic-gradient(from var(--siri-angle), #D52B1E, #9E62A6, #1F5FA8, #9E62A6, #D52B1E);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: siri-spin 4s linear infinite; }
+  .ios-switch { position: relative; width: 51px; height: 31px; flex: none; border-radius: 9999px; background: rgba(120,120,128,.22); transition: background 250ms ease; }
+  .ios-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.15), 0 1px 1px rgba(0,0,0,.06); transition: transform 250ms cubic-bezier(.32,.72,0,1); }
+  .ios-switch[aria-checked="true"] { background: #34C759; }
+  .ios-switch[aria-checked="true"]::after { transform: translateX(20px); }
+  .ios-switch:disabled { opacity: .55; }
+  .siri-sheet-up { animation: sheet-up 420ms cubic-bezier(.32,.72,0,1) both; }
+  .fade-in { animation: fade-in 200ms ease both; }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+  .burbuja-usuario { background: rgba(255,255,255,.72); border: 1px solid rgba(255,255,255,.85); border-radius: 20px 20px 6px 20px; }
+  @media (prefers-reduced-motion: reduce) { .siri-orb-3d, .siri-orb-3d::before, .voz-onda path, .voz-barras i, .voz-mic.is-on::before, .siri-sheet-up { animation: none !important; } }
+  /* ===== Revisión UX: tab bar de 3 + búsqueda, HUD, foco visible, sidebar de dos grupos ===== */
+  .ios-tabbar-wrap { position: absolute; left: 50%; transform: translateX(-50%); bottom: 12px; z-index: 30; display: flex; align-items: center; gap: 8px; transition: transform 380ms cubic-bezier(.32,.72,0,1), opacity 300ms ease; }
+  .ios-tabbar-wrap .ios-tabbar { position: static; transform: none; }
+  .ios-tabbar-wrap.is-oculta { transform: translate(-50%, 120px); opacity: 0; pointer-events: none; }
+  .ios-tab-search { width: 58px; height: 58px; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; color: #1A1A1A; flex: none; }
+  /* Minimizada al bajar (iOS 26): solo el ícono del tab activo. */
+  .ios-tabbar-wrap.is-min .ios-tab:not([aria-selected="true"]) { width: 0; padding: 0; opacity: 0; overflow: hidden; }
+  .ios-tabbar-wrap.is-min .ios-tab[aria-selected="true"] span { display: none; }
+  .ios-tabbar-wrap.is-min .ios-tab[aria-selected="true"] { padding: 0 12px; }
+  .ios-tab { overflow: hidden; }
+  .ios-hud { position: absolute; left: 50%; top: 62px; transform: translateX(-50%); z-index: 38; height: 36px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px 0 10px; border-radius: 9999px; font-size: 14px; font-weight: 600; color: #1A1A1A; white-space: nowrap; }
+  :focus-visible { outline: 2px solid #1F5FA8; outline-offset: 2px; border-radius: inherit; }
+  .ios-side-group { padding: 0 14px; margin: 18px 0 6px; font-size: 12px; font-weight: 600; color: #9AA0A6; }
+  .ios-side-item.is-sub { height: 40px; font-size: 14px; }
+  /* ===== Nav bar iOS 26: Atrás como círculo de 44 con solo chevron; acciones (orbe · bookmark · share) en círculos de vidrio ===== */
+  .ios-back { width: 44px; height: 44px; padding: 0; justify-content: center; gap: 0; }
+  .ios-nav-circle { width: 44px; height: 44px; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; color: #1A1A1A; }
+  .ios-nav-circle[aria-pressed="true"] svg { fill: currentColor; color: #D52B1E; }
+  /* Scroll edge effect en la lista de la hoja: el segmented queda fijo en la cabecera y la lista se desvanece al pasar por debajo. */
+  .ios-hoja.is-large .hoja-body { -webkit-mask-image: linear-gradient(to bottom, transparent, #000 24px); mask-image: linear-gradient(to bottom, transparent, #000 24px); }
+  /* ===== Aurora (traducción CSS del Aurora Background de Aceternity, versión clara) solo detrás del Inicio: bandas de luz
+     azul Lilly / lavanda / rosa en positivo, muy difuminadas, que nacen arriba a la derecha y se mueven muy despacio ===== */
+  .aurora { position: absolute; inset: -40px; overflow: hidden; pointer-events: none; opacity: .6; z-index: -1;
+    --tr: transparent; --w: #fff;
+    --aurora: repeating-linear-gradient(100deg, #CFE0FA 10%, #E9DDFA 15%, #FBDDE4 20%, #D6E6FB 25%, #CFE0FA 30%);
+    --white-gradient: repeating-linear-gradient(100deg, var(--w) 0%, var(--w) 7%, var(--tr) 10%, var(--tr) 12%, var(--w) 16%);
+    background-image: var(--white-gradient), var(--aurora);
+    background-size: 300%, 200%; background-position: 50% 50%, 50% 50%;
+    filter: blur(40px); will-change: transform;
+    -webkit-mask-image: radial-gradient(ellipse at 100% 0%, #000 10%, transparent 70%); mask-image: radial-gradient(ellipse at 100% 0%, #000 10%, transparent 70%); }
+  .aurora::after { content: ''; position: absolute; inset: 0; opacity: .75;
+    background-image: var(--white-gradient), var(--aurora);
+    background-size: 200%, 100%; mix-blend-mode: normal;
+    animation: aurora 60s linear infinite; }
+  @keyframes aurora { from { background-position: 50% 50%, 50% 50%; } to { background-position: 350% 50%, 350% 50%; } }
+  /* Entrada del Inicio la primera vez (curva del demo): opacidad 0→1 y 40 px→0 en 800 ms con 300 ms de retardo. */
+  .inicio-enter { animation: inicio-in 800ms cubic-bezier(.32,.72,0,1) 300ms both; }
+  @keyframes inicio-in { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .aurora::after { animation: none; } .inicio-enter { animation: none; } }
+  /* ===== Fotos: cards de Formación con foto y velo del tinte de la enfermedad ===== */
+  .foto-card { position: relative; overflow: hidden; color: #fff; }
+  .foto-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .foto-card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, var(--velo) 0%, rgba(0,0,0,.12) 55%, rgba(0,0,0,0) 100%); }
+  .foto-card[data-tinte="diabetes"] { --velo: rgba(31,95,168,.85); }
+  .foto-card[data-tinte="mama"]     { --velo: rgba(200,16,46,.85); }
+  .foto-card[data-tinte="derma"]    { --velo: rgba(15,124,124,.85); }
+  .foto-card > .foto-texto { position: relative; z-index: 1; }
+  .guia-foto { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 16px; background: rgba(255,255,255,.04); }
+  .guia-foto img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; transition: opacity 500ms ease; }
+  .guia-foto::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 55%); }
+</style>
+</head>
+<body class="font-sans bg-[#0B0B0D] text-white h-screen overflow-hidden antialiased" x-data="app()" x-init="init()" x-cloak>
+
+<!-- Barra superior del prototipo (no es parte del app) -->
+<header class="proto-panel fixed inset-x-0 top-0 z-30 h-14 bg-[#0B0B0D]/85 backdrop-blur-xl flex items-center px-6 gap-4">
+  <div class="flex items-center gap-2.5">
+    <span class="h-2 w-2 rounded-full bg-lilly"></span>
+    <span class="font-semibold text-[15px] tracking-tight">Lilly 360</span>
+    <span class="text-white/35 text-[13px]">prototipo navegable</span>
+  </div>
+  <div class="proto-seg ml-4 hidden sm:inline-flex">
+    <template x-for="d in dispositivos" :key="d.id">
+      <button @click="dispositivo = d.id" :aria-selected="dispositivo === d.id ? 'true' : 'false'" x-text="d.nombre"></button>
+    </template>
+  </div>
+  <nav class="ml-auto hidden md:flex items-center gap-1 text-[13px]">
+    <template x-for="s in atajos" :key="s.id">
+      <button @click="ir(s.id, s.extra)" class="px-3.5 py-1.5 rounded-full transition-colors duration-200"
+              :class="pantalla === s.id ? 'bg-white/12 text-white' : 'text-white/50 hover:text-white/80 hover:bg-white/5'" x-text="s.nombre"></button>
+    </template>
+  </nav>
+  <button @click="guia = !guia" class="ml-2 inline-flex items-center gap-2 rounded-full bg-white/8 px-3.5 py-1.5 text-[13px] text-white/70 hover:bg-white/12 hover:text-white transition-colors duration-200">
+    <i data-lucide="book-open" class="h-4 w-4"></i><span x-text="guia ? 'Ocultar guía' : 'Mostrar guía'"></span>
+  </button>
+</header>
+
+<main class="pt-14 h-screen flex items-stretch overflow-hidden">
+
+  <!-- Panel de guía (la narrativa de Óscar; es del prototipo, no del app) -->
+  <aside x-show="guia" x-transition.opacity class="proto-panel hidden lg:flex w-[380px] shrink-0 flex-col p-7 gap-5 overflow-y-auto">
+    <!-- Foto del momento: cambia con fundido al cambiar de pantalla -->
+    <div class="guia-foto">
+      <img :src="guiaActual.foto" :alt="guiaActual.titulo" loading="lazy" decoding="async" :style="'object-position:' + posFoto(guiaActual.foto)"
+           x-effect="guiaActual.foto; $el.style.opacity = 0" @load="$el.style.opacity = 1" />
+    </div>
+    <div>
+      <p class="text-[11px] uppercase tracking-[.18em] text-lilly font-semibold" x-text="guiaActual.momento"></p>
+      <h2 class="mt-2 text-[24px] font-semibold leading-tight tracking-tight" x-text="guiaActual.titulo"></h2>
+      <p class="mt-1.5 text-white/40 text-[13px]" x-text="guiaActual.hora"></p>
+    </div>
+    <p class="text-white/70 text-[14px] leading-relaxed" x-text="guiaActual.historia"></p>
+    <div class="rounded-2xl bg-white/5 p-4">
+      <p class="text-[11px] uppercase tracking-[.18em] text-white/35 font-semibold mb-3">Qué resuelve la pantalla</p>
+      <ul class="space-y-2.5 text-[14px] text-white/75">
+        <template x-for="p in guiaActual.puntos" :key="p"><li class="flex gap-2.5"><span class="mt-[9px] h-1 w-1 shrink-0 rounded-full bg-lilly"></span><span x-text="p"></span></li></template>
+      </ul>
+    </div>
+    <div class="mt-auto space-y-3">
+      <p class="rounded-2xl bg-white/[.03] p-4 text-[12px] text-white/40 leading-relaxed">
+        Aproximación de mockups. Imágenes de referencia hasta tener aprobaciones. No es una propuesta definitiva.
+      </p>
+      <div class="flex gap-2">
+        <button @click="atras()" :disabled="historial.length === 0" class="flex-1 rounded-full bg-white/8 px-3 py-2.5 text-[13px] text-white/80 hover:bg-white/12 disabled:opacity-30 transition-colors">Atrás</button>
+        <button @click="ir('inicio')" class="flex-1 rounded-full bg-white px-3 py-2.5 text-[13px] font-semibold text-black hover:bg-white/90 transition-colors">Inicio</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Marco: uno solo, muta entre iPhone, iPad y ventana de escritorio y se escala para caber en la vista -->
+  <section class="flex-1 flex items-center justify-center p-8 overflow-hidden">
+    <div class="proto-fit" :style="`width:${marco.w * escala}px;height:${marco.h * escala}px`">
+      <div class="proto-frame" :class="'is-' + dispositivo" :style="`width:${marco.w}px;height:${marco.h}px;transform:scale(${escala})`">
+      <div class="bg-scene proto-screen text-ink" :data-tinte="pantalla === 'inicio' ? '' : enfermedad">
+
+        <!-- Glow de borde tipo Apple Intelligence: recorre el borde interior de la pantalla o ventana; solo se enciende con la consulta al RAG -->
+        <div class="siri-glow" :class="{ 'is-on': rag.foco || rag.abierto || rag.estado !== 'idle', 'is-thinking': rag.estado === 'pensando' || rag.escuchando, 'is-speaking': rag.estado === 'respuesta' && !rag.foco && !rag.escuchando }"></div>
+
+        <!-- Dynamic Island (solo iPhone): compacta por defecto; se expande con `island` (estado de una tarea) o mientras el RAG consulta -->
+        <div x-show="dispositivo === 'iphone'" class="dynamic-island" :class="{ 'is-expanded': island || rag.estado === 'pensando' }">
+          <template x-if="rag.estado === 'pensando'">
+            <span class="flex items-center gap-2 whitespace-nowrap screen-enter">
+              <span class="ios-orb is-active !h-4 !w-4"></span>
+              <span>Consultando estudios…</span>
+            </span>
+          </template>
+          <template x-if="island && rag.estado !== 'pensando'">
+            <span class="flex items-center gap-2 whitespace-nowrap screen-enter">
+              <span class="h-2 w-2 rounded-full bg-[#30D158]"></span>
+              <span x-text="island"></span>
+            </span>
+          </template>
+        </div>
+
+        <!-- Barra de estado iOS (iPhone) -->
+        <div x-show="dispositivo === 'iphone'" class="ios-status">
+          <span>9:41</span>
+          <span class="flex items-center gap-1.5"><i data-lucide="signal" class="h-[15px] w-[15px]"></i><i data-lucide="wifi" class="h-[15px] w-[15px]"></i><i data-lucide="battery-full" class="h-[18px] w-[18px]"></i></span>
+        </div>
+        <!-- Barra de estado iPadOS -->
+        <div x-show="dispositivo === 'ipad'" class="ipad-status">
+          <span class="flex items-center gap-3"><span>9:41</span><span class="font-medium text-ink-2">Jue 17 sep</span></span>
+          <span class="flex items-center gap-1.5"><i data-lucide="wifi" class="h-[13px] w-[13px]"></i><i data-lucide="battery-full" class="h-[16px] w-[16px]"></i></span>
+        </div>
+        <!-- Barra de título macOS (escritorio) -->
+        <div x-show="dispositivo === 'desktop'" class="mac-titlebar">
+          <span class="flex items-center gap-2"><span class="h-3 w-3 rounded-full bg-[#FF5F57]"></span><span class="h-3 w-3 rounded-full bg-[#FEBC2E]"></span><span class="h-3 w-3 rounded-full bg-[#28C840]"></span></span>
+          <span class="mac-url"><i data-lucide="lock" class="h-3 w-3"></i>lilly360.com.co</span>
+          <span class="w-[52px]"></span>
+        </div>
+
+        <div class="proto-row">
+          <!-- Sidebar de vidrio (iPad y escritorio): reemplaza a la tab bar -->
+          <aside class="ios-sidebar">
+            <p class="px-[14px] text-[13px] font-semibold tracking-tight"><span class="text-lilly">Lilly</span> <span class="text-ink-3">360</span></p>
+            <nav class="mt-5 space-y-1" aria-label="Secciones">
+              <template x-for="t in tabBar" :key="'side-' + t.id">
+                <button @click="irRaiz(t.id)" class="ios-side-item press" :aria-selected="sidebarActivo === t.id ? 'true' : 'false'">
+                  <i :data-lucide="t.icono" class="h-5 w-5 text-ink-2"></i><span x-text="t.nombre"></span>
+                </button>
+              </template>
+            </nav>
+            <p class="ios-side-group">Búsqueda rápida</p>
+            <nav class="space-y-0.5" aria-label="Búsqueda rápida por enfermedad">
+              <template x-for="(e, k) in enfermedades" :key="'side-b-' + k">
+                <button @click="abrirTema(k)" class="ios-side-item is-sub press" :aria-selected="sidebarActivo === 'busqueda-' + k ? 'true' : 'false'">
+                  <i :data-lucide="e.icono" class="h-[18px] w-[18px] text-ink-2"></i><span x-text="e.nombre"></span>
+                </button>
+              </template>
+            </nav>
+            <p class="ios-side-group">Formación ágil</p>
+            <nav class="space-y-0.5" aria-label="Formación ágil por enfermedad">
+              <template x-for="(e, k) in enfermedades" :key="'side-f-' + k">
+                <button @click="abrirFormacion(k)" class="ios-side-item is-sub press" :aria-selected="sidebarActivo === 'formacion-' + k ? 'true' : 'false'">
+                  <i :data-lucide="e.icono" class="h-[18px] w-[18px] text-ink-2"></i><span x-text="e.nombre"></span>
+                </button>
+              </template>
+            </nav>
+            <button @click="irRaiz('perfil')" class="mt-auto flex items-center gap-3 px-[10px] pt-4 text-left press">
+              <span class="glass-icon !h-10 !w-10 text-[14px] font-semibold">Ó</span>
+              <span class="min-w-0"><span class="block text-[14px] font-semibold text-ink truncate">Óscar</span><span class="block text-[12px] text-ink-2 truncate">Endocrinología</span></span>
+            </button>
+          </aside>
+
+          <div class="proto-main" x-ref="main">
+        <!-- Aurora solo en el Inicio, en los tres dispositivos: detrás del contenido, encima del .bg-scene, sin tocar el tinte de las otras pantallas -->
+        <div x-show="pantalla === 'inicio'" x-transition.opacity.duration.600ms class="aurora" aria-hidden="true"></div>
+        <!-- Nav bar iOS 26: Atrás en círculo de vidrio, título compacto (el de la pieza en Detalle y Pieza), acciones orbe · bookmark · share -->
+        <div class="ios-navbar" :class="{ 'is-scrolled': scrolled }" x-show="!['inicio', 'guardados', 'perfil'].includes(pantalla) && !(dispositivo === 'iphone' && pantalla === 'tema')">
+          <button @click="atras()" class="ios-back glass press" aria-label="Atrás"><i data-lucide="chevron-left" class="h-[22px] w-[22px]"></i></button>
+          <span class="truncate text-[17px] font-semibold text-ink pointer-events-none transition-opacity duration-300"
+                :class="['detalle', 'pieza'].includes(pantalla) && dispositivo === 'iphone' ? ['relative flex-1 min-w-0 px-3 text-left', scrolled ? 'opacity-100' : 'opacity-0'] : 'absolute left-1/2 -translate-x-1/2 max-w-[50%]'"
+                x-text="tituloNativo"></span>
+          <div x-show="['detalle', 'pieza'].includes(pantalla)" class="flex items-center gap-2">
+            <button @click="ragAbrirCon(piezaActual)" class="ios-nav-circle glass press" aria-label="Preguntar a Lilly 360 sobre esta pieza"><span class="ios-orb !h-6 !w-6"></span></button>
+            <button @click="guardar(piezaActual)" class="ios-nav-circle glass press" :aria-pressed="esGuardado(piezaActual) ? 'true' : 'false'" :aria-label="esGuardado(piezaActual) ? 'Quitar de Guardados' : 'Guardar'"><i data-lucide="bookmark" class="h-5 w-5"></i></button>
+            <button @click="hud('Enlace copiado')" class="ios-nav-circle glass press" aria-label="Compartir"><i data-lucide="share" class="h-5 w-5"></i></button>
+          </div>
+        </div>
+
+        <!-- HUD de confirmación (M2): cápsula bajo la nav bar, 1,8 s. La isla queda solo para «En vivo hoy» y «Consultando…» -->
+        <div x-show="hudTexto" x-transition.opacity.duration.250ms class="glass-strong siri-card ios-hud" role="status" aria-live="polite"><i data-lucide="check" class="h-4 w-4 text-lilly"></i><span x-text="hudTexto"></span></div>
+
+        <!-- Contenido (@container: @3xl tablet, @6xl escritorio): recibe la transición de pantalla y se re-dispara con `transicion` -->
+        <div class="@container flex-1 overflow-y-auto scroll-hide phone-screen" x-ref="scroll"
+             :class="[direccion === 'atras' ? 'screen-back' : 'screen-enter', rag.abierto ? 'is-dimmed' : '', hoja.arrastrando ? 'is-velo-drag' : '']" :style="hojaVeloEstilo"
+             x-effect="transicion; $el.style.animation = 'none'; void $el.offsetWidth; $el.style.animation = ''"
+             @scroll.passive="alDesplazar($el)"
+             @click="if (dispositivo === 'iphone' && pantalla === 'inicio' && hoja.detent === 'medium' && !$event.target.closest('button')) hojaIr('small')">
+

@@ -1,0 +1,9 @@
+# Documentos internos: no se publican en el repo público
+*.pdf
+CONTEXTO.md
+design.md
+siri-referencia.md
+maps-sheet-referencia.md
+ux-revision.md
+index.v1.html
+.DS_Store
